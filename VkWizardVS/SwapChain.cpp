@@ -31,14 +31,12 @@ vk::Extent2D chooseSwapExtent(vk::SurfaceCapabilitiesKHR capabilities, vk::Exten
 	return windowExtent;
 }
 
-vkwiz::SwapChain::SwapChain(Device& device, vk::raii::SurfaceKHR& surface, vk::Extent2D windowExtent)
+vkwiz::SwapChain::SwapChain(Device& device, vk::raii::SurfaceKHR& surface, vk::Extent2D windowExtent) : device_(device)
 {
-	auto logicalDevice = &device.getDevice();
-
 	auto swapChainSupport = device.querySwapchainSupportDetails(surface, windowExtent);
 	auto format = chooseSwapSurfaceFormat(swapChainSupport.formats);
 	auto presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-	auto extent = chooseSwapExtent(swapChainSupport.capabilities, windowExtent);
+	extent = chooseSwapExtent(swapChainSupport.capabilities, windowExtent);
 	// TODO: considerar o surface capabilities
 	u32 minImageCount = 3;
 
@@ -59,5 +57,37 @@ vkwiz::SwapChain::SwapChain(Device& device, vk::raii::SurfaceKHR& surface, vk::E
 		.oldSwapchain = VK_NULL_HANDLE
 	};
 
-	swapChain = vk::raii::SwapchainKHR(*logicalDevice, swapChainCreateInfo);
+	swapChain = vk::raii::SwapchainKHR(device.getDevice(), swapChainCreateInfo);
+	imageFormat = format.format;
+	images = swapChain.getImages();
+
+	createImageViews();
+}
+
+void vkwiz::SwapChain::createImageViews()
+{
+	auto device = &device_.getDevice();
+	auto createInfo = vk::ImageViewCreateInfo{
+		.viewType = vk::ImageViewType::e2D,
+		.format = imageFormat,
+		.components = {
+			.r = vk::ComponentSwizzle::eIdentity,
+			.g = vk::ComponentSwizzle::eIdentity,
+			.b = vk::ComponentSwizzle::eIdentity,
+			.a = vk::ComponentSwizzle::eIdentity,
+		},
+		.subresourceRange = {
+			.aspectMask = vk::ImageAspectFlagBits::eColor,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1,
+		},
+	};
+
+	imageViews = vector<vk::ImageView>(images.size());
+	for (size_t i = 0; i < images.size(); i++) {
+		createInfo.image = images[i];
+		imageViews[i] = vk::raii::ImageView(*device, createInfo);
+	}
 }
