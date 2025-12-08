@@ -5,10 +5,11 @@
 using namespace vkwiz;
 
 std::vector<const char*> REQUIRED_EXTENSIONS = {
+	vk::KHRShaderDrawParametersExtensionName,
+	vk::KHRCreateRenderpass2ExtensionName,
+	vk::KHRSynchronization2ExtensionName,
 	vk::KHRSwapchainExtensionName,
 	vk::KHRSpirv14ExtensionName,
-	vk::KHRSynchronization2ExtensionName,
-	vk::KHRCreateRenderpass2ExtensionName,
 };
 
 bool isDeviceSuitable(vk::raii::PhysicalDevice device)

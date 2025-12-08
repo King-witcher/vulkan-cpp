@@ -4,6 +4,8 @@
 #include "Vulkan.h"
 #include "Device.h"
 #include "SwapChain.h"
+#include "Pipeline.h"
+
 #include <memory>
 
 namespace vkwiz {
@@ -20,6 +22,7 @@ namespace vkwiz {
 		vk::raii::SurfaceKHR surface = nullptr;
 		std::unique_ptr<Device> device = nullptr;
 		std::unique_ptr<SwapChain> swapChain = nullptr;
+		std::unique_ptr<Pipeline> pipeline = nullptr;
 
 		vk::raii::Instance createInstance();
 	};

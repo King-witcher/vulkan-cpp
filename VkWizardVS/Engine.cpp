@@ -10,6 +10,7 @@ void vkwiz::Engine::run() {
 		input::update();
 		if (input::shouldQuit()) break;
 	}
+	std::cout << "Exiting engine loop." << std::endl;
 }
 
 vk::raii::Instance vkwiz::Engine::createInstance() {
@@ -58,6 +59,10 @@ std::unique_ptr<SwapChain> createSwapChain(Device& device, vk::raii::SurfaceKHR&
 	return std::make_unique<SwapChain>(device, surface, windowExtent);
 }
 
+std::unique_ptr<Pipeline> createPipeline(Device& device, const std::string& shaderPath) {
+	return std::make_unique<Pipeline>(device, shaderPath);
+}
+
 
 vkwiz::Engine::Engine() {
 	window = createWindow(800, 600, "VkWizardVS");
@@ -65,4 +70,5 @@ vkwiz::Engine::Engine() {
 	surface = window->getVulkanSurface(vkInstance);
 	device = createDevice(vkInstance, surface);
 	swapChain = createSwapChain(*device, surface, vk::Extent2D{ 800, 600 });
+	pipeline = createPipeline(*device, "shaders/shader.spv");
 }
