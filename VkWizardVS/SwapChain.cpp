@@ -58,7 +58,7 @@ vkwiz::SwapChain::SwapChain(Device& device, vk::raii::SurfaceKHR& surface, vk::E
 	};
 
 	swapChain = vk::raii::SwapchainKHR(device.getDevice(), swapChainCreateInfo);
-	imageFormat = format.format;
+	imageFormat_ = format.format;
 	images = swapChain.getImages();
 
 	createImageViews();
@@ -69,7 +69,7 @@ void vkwiz::SwapChain::createImageViews()
 	auto device = &device_.getDevice();
 	auto createInfo = vk::ImageViewCreateInfo{
 		.viewType = vk::ImageViewType::e2D,
-		.format = imageFormat,
+		.format = imageFormat_,
 		.components = {
 			.r = vk::ComponentSwizzle::eIdentity,
 			.g = vk::ComponentSwizzle::eIdentity,

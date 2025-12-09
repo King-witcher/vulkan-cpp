@@ -17,23 +17,24 @@ static vector<u8> readFile(const string& filename) {
 	return buffer;
 }
 
-vkwiz::Pipeline::Pipeline(vkwiz::Device& device, std::string shaderPath, vk::Extent2D extent)
+vkwiz::Pipeline::Pipeline(Device& device, vkwiz::SwapChain& swapchain, std::string shaderPath, vk::Extent2D extent)
 	: device_(device)
 {
 	auto logicalDevice = &device_.getDevice();
 	auto shaderCode = readFile(shaderPath);
 	createShaderModule(std::move(shaderCode));
 
-	vk::PipelineShaderStageCreateInfo vertShaderStageInfo{
-		.stage = vk::ShaderStageFlagBits::eVertex,
-		.module = *shaderModule_,
-		.pName = "vertMain",
-	};
-
-	vk::PipelineShaderStageCreateInfo fragShaderStageInfo{
-		.stage = vk::ShaderStageFlagBits::eFragment,
-		.module = *shaderModule_,
-		.pName = "fragMain",
+	std::vector<vk::PipelineShaderStageCreateInfo> stages = {
+		{
+			.stage = vk::ShaderStageFlagBits::eVertex,
+			.module = *shaderModule_,
+			.pName = "vertMain",
+		},
+		{
+			.stage = vk::ShaderStageFlagBits::eFragment,
+			.module = *shaderModule_,
+			.pName = "fragMain",
+		}
 	};
 
 	// Fixed functions
@@ -70,12 +71,16 @@ vkwiz::Pipeline::Pipeline(vkwiz::Device& device, std::string shaderPath, vk::Ext
 	vk::PipelineRasterizationStateCreateInfo rasterizer{
 		.depthClampEnable = vk::False,
 		.rasterizerDiscardEnable = vk::False,
-		.polygonMode = vk::PolygonMode::eLine,
+		.polygonMode = vk::PolygonMode::eFill,
 		.cullMode = vk::CullModeFlagBits::eBack,
 		.frontFace = vk::FrontFace::eClockwise,
 		.depthBiasEnable = vk::False,
 		.depthBiasSlopeFactor = 1.0f,
 		.lineWidth = 1.0f,
+	};
+	vk::PipelineMultisampleStateCreateInfo multisampling{
+		.rasterizationSamples = vk::SampleCountFlagBits::e1,
+		.sampleShadingEnable = vk::False,
 	};
 	vk::PipelineColorBlendAttachmentState colorBlendAttachment{
 		.blendEnable = vk::False,
@@ -88,9 +93,38 @@ vkwiz::Pipeline::Pipeline(vkwiz::Device& device, std::string shaderPath, vk::Ext
 		.attachmentCount = 1,
 		.pAttachments = &colorBlendAttachment,
 	};
+
+	auto format = swapchain.imageFormat();
+	// Required for dynamic rendering
+	vk::PipelineRenderingCreateInfo pipelineRenderingInfo{
+		.colorAttachmentCount = 1,
+		.pColorAttachmentFormats = &format,
+	};
+
+	// Pipeline layout
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
 	pipelineLayout_ = vk::raii::PipelineLayout{ *logicalDevice, pipelineLayoutInfo };
 
+	vk::GraphicsPipelineCreateInfo pipelineInfo{
+		.pNext = &pipelineRenderingInfo,
+		.stageCount = static_cast<u32>(stages.size()),
+		.pStages = stages.data(),
+		.pVertexInputState = &vertexInputInfo,
+		.pInputAssemblyState = &inputAssembly,
+		.pViewportState = &viewportState,
+		.pRasterizationState = &rasterizer,
+		.pMultisampleState = &multisampling,
+		.pColorBlendState = &colorBlending,
+		.pDynamicState = &dynamicState,
+		.layout = *pipelineLayout_,
+		.renderPass = nullptr,
+		// Not using pipeline derivatives right now
+		.basePipelineHandle = nullptr,
+		.basePipelineIndex = -1,
+	};
+
+	// Sem cache por enquanto
+	pipeline_ = vk::raii::Pipeline{ *logicalDevice, nullptr, pipelineInfo };
 }
 
 void vkwiz::Pipeline::createShaderModule(const std::vector<u8> code)

@@ -27,11 +27,11 @@ vk::raii::Instance vkwiz::Engine::createInstance() {
 	auto supportedExtensions = vk::enumerateInstanceExtensionProperties();
 	// TODO: check for supported extensions
 
-#ifdef _DEBUG
+#ifdef NDEBUG
+	auto layers = std::vector<const char*>{};
+#else
 	auto layers = std::vector<const char*>{ "VK_LAYER_KHRONOS_validation" };
 	std::cout << "Enabling validation layers..." << std::endl;
-#else
-	auto layers = std::vector<const char*>{};
 #endif
 
 	vk::InstanceCreateInfo createInfo{
@@ -59,10 +59,6 @@ std::unique_ptr<SwapChain> createSwapChain(Device& device, vk::raii::SurfaceKHR&
 	return std::make_unique<SwapChain>(device, surface, windowExtent);
 }
 
-std::unique_ptr<Pipeline> createPipeline(Device& device, const std::string& shaderPath, vk::Extent2D windowExtent) {
-	return std::make_unique<Pipeline>(device, shaderPath, windowExtent);
-}
-
 
 vkwiz::Engine::Engine() {
 	window = createWindow(800, 600, "VkWizardVS");
@@ -71,5 +67,5 @@ vkwiz::Engine::Engine() {
 	surface = window->getVulkanSurface(vkInstance);
 	device = createDevice(vkInstance, surface);
 	swapChain = createSwapChain(*device, surface, windowExtent);
-	pipeline = createPipeline(*device, "shaders/shader.spv", windowExtent);
+	pipeline = std::make_unique<Pipeline>(*device, *swapChain, "shaders/shader.spv", windowExtent);
 }

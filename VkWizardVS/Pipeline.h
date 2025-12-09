@@ -3,6 +3,7 @@
 #include "Vulkan.h"
 #include "Device.h"
 #include "RustTypes.h"
+#include "SwapChain.h"
 
 #include <string>
 #include <vector>
@@ -11,7 +12,7 @@ namespace vkwiz {
 	class Pipeline
 	{
 	public:
-		Pipeline(Device& device, std::string shaderPath, vk::Extent2D extent);
+		Pipeline(Device& device, vkwiz::SwapChain& swapchain, std::string shaderPath, vk::Extent2D extent);
 
 	private:
 		Device& device_;
