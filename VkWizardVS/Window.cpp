@@ -22,7 +22,12 @@ char const* const* vkwiz::Window::getRequiredVulkanExtensions(u32* extensionCoun
 	return SDL_Vulkan_GetInstanceExtensions(extensionCount);
 }
 
-void vkwiz::Window::getDrawableSize(i32* width, i32* height) const
+vk::Extent2D vkwiz::Window::getExtent() const
 {
-	SDL_GetWindowSizeInPixels(window_, width, height);
+	i32 width, height;
+	SDL_GetWindowSizeInPixels(window_, &width, &height);
+	return {
+		.width = static_cast<u32>(width),
+		.height = static_cast<u32>(height),
+	};
 }

@@ -11,13 +11,14 @@ namespace vkwiz {
 	class Pipeline
 	{
 	public:
-		Pipeline(Device& device, std::string shaderPath);
+		Pipeline(Device& device, std::string shaderPath, vk::Extent2D extent);
 
 	private:
 		Device& device_;
 		vk::raii::ShaderModule shaderModule_ = nullptr;
+		vk::raii::PipelineLayout pipelineLayout_ = nullptr;
+		vk::raii::Pipeline pipeline_ = nullptr;
 
 		void createShaderModule(const std::vector<u8> code);
-		std::array<vk::PipelineShaderStageCreateInfo, 2> createShaderStages(vk::raii::ShaderModule& shaderModule, const char* vertMain, const char* fragMain);
 	};
 }
