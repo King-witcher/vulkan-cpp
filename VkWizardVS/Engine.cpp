@@ -6,6 +6,7 @@
 using namespace vkwiz;
 
 void vkwiz::Engine::run() {
+	draw();
 	for (;;) {
 		input::update();
 		if (input::shouldQuit()) break;
@@ -47,25 +48,149 @@ vk::raii::Instance vkwiz::Engine::createInstance() {
 	return instance;
 }
 
-std::unique_ptr<Window> createWindow(u32 width, u32 height, const char* title) {
-	return std::make_unique<Window>(title);
+void transition_image_layout(
+	vk::raii::CommandBuffer& commandBuffer,
+	vk::Image image,
+	vk::ImageLayout oldLayout,
+	vk::ImageLayout newLayout,
+	vk::AccessFlags2 srcAccessMask,
+	vk::AccessFlags2 dstAccessMask,
+	vk::PipelineStageFlags2 srcStageMask,
+	vk::PipelineStageFlags2 dstStageMask
+) {
+	vk::ImageMemoryBarrier2 barrier = {
+		.srcStageMask = srcStageMask,
+		.srcAccessMask = srcAccessMask,
+		.dstStageMask = dstStageMask,
+		.dstAccessMask = dstAccessMask,
+		.oldLayout = oldLayout,
+		.newLayout = newLayout,
+		.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.image = image,
+		.subresourceRange = {
+			.aspectMask = vk::ImageAspectFlagBits::eColor,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1
+		}
+	};
+	vk::DependencyInfo dependencyInfo = {
+		.dependencyFlags = {},
+		.imageMemoryBarrierCount = 1,
+		.pImageMemoryBarriers = &barrier
+	};
+	commandBuffer.pipelineBarrier2(dependencyInfo);
 }
 
-std::unique_ptr<Device> createDevice(vk::raii::Instance& instance, vk::raii::SurfaceKHR& surface) {
-	return std::make_unique<Device>(instance, surface);
+void vkwiz::Engine::createCommandBuffer()
+{
+	auto commandPool = &device_->commandPool();
+	auto device = &device_->getDevice();
+	vk::CommandBufferAllocateInfo allocInfo{
+		.commandPool = *commandPool,
+		.level = vk::CommandBufferLevel::ePrimary,
+		.commandBufferCount = 1
+	};
+	commandBuffer_ = std::move(vk::raii::CommandBuffers(*device, allocInfo).front());
 }
 
-std::unique_ptr<SwapChain> createSwapChain(Device& device, vk::raii::SurfaceKHR& surface, vk::Extent2D windowExtent) {
-	return std::make_unique<SwapChain>(device, surface, windowExtent);
+void vkwiz::Engine::recordCommandBuffer(vk::Image image, vk::ImageView imageView)
+{
+	auto extent = swapChain->extent();
+	commandBuffer_.begin({});
+
+	transition_image_layout(
+		commandBuffer_,
+		image,
+		vk::ImageLayout::eUndefined,
+		vk::ImageLayout::eColorAttachmentOptimal,
+		{},
+		vk::AccessFlagBits2::eColorAttachmentWrite,
+		vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+		vk::PipelineStageFlagBits2::eColorAttachmentOutput
+	);
+
+	vk::RenderingAttachmentInfo colorAttachment{
+		.imageView = imageView,
+		.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+		.loadOp = vk::AttachmentLoadOp::eClear,
+		.storeOp = vk::AttachmentStoreOp::eStore,
+		.clearValue = vk::ClearColorValue(0.1f, 0.1f, 0.1f, 1.0f),
+	};
+	vk::RenderingInfo renderingInfo{
+		.renderArea = vk::Rect2D{ {0, 0}, extent },
+		.layerCount = 1,
+		.colorAttachmentCount = 1,
+		.pColorAttachments = &colorAttachment,
+	};
+	commandBuffer_.beginRendering(renderingInfo);
+
+	commandBuffer_.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline->getPipeline());
+
+	commandBuffer_.setViewport(
+		0,
+		vk::Viewport(
+			0.0f,
+			0.0f,
+			static_cast<f32>(extent.width),
+			static_cast<f32>(extent.height),
+			0.0f,
+			1.0f
+		)
+	);
+
+	commandBuffer_.setScissor(
+		0,
+		vk::Rect2D{
+			.offset = vk::Offset2D{ 0, 0 },
+			.extent = extent
+		}
+	);
+
+	commandBuffer_.draw(3, 1, 0, 0);
+
+	commandBuffer_.endRendering();
+
+	transition_image_layout(
+		commandBuffer_,
+		image,
+		vk::ImageLayout::eColorAttachmentOptimal,
+		vk::ImageLayout::ePresentSrcKHR,
+		vk::AccessFlagBits2::eColorAttachmentWrite,
+		{},
+		vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+		vk::PipelineStageFlagBits2::eBottomOfPipe
+	);
+
+	commandBuffer_.end();
 }
 
+void vkwiz::Engine::createSyncObjects()
+{
+	auto device = &device_->getDevice();
+	presentCompleteSemaphore = vk::raii::Semaphore(*device, vk::SemaphoreCreateInfo());
+	renderCompleteSemaphore = vk::raii::Semaphore(*device, vk::SemaphoreCreateInfo());
+	drawFence = vk::raii::Fence(*device, vk::FenceCreateInfo{ .flags = vk::FenceCreateFlagBits::eSignaled });
+}
+
+void vkwiz::Engine::draw()
+{
+	auto [image, imageView] = swapChain->acquireImage(presentCompleteSemaphore, nullptr);
+	recordCommandBuffer(image, imageView);
+	// Reset fence
+}
 
 vkwiz::Engine::Engine() {
-	window = createWindow(800, 600, "VkWizardVS");
+	window = std::make_unique<Window>("VkWizard");
 	auto windowExtent = window->getExtent();
 	vkInstance = createInstance();
 	surface = window->getVulkanSurface(vkInstance);
-	device = createDevice(vkInstance, surface);
-	swapChain = createSwapChain(*device, surface, windowExtent);
-	pipeline = std::make_unique<Pipeline>(*device, *swapChain, "shaders/shader.spv", windowExtent);
+	device_ = std::make_unique<Device>(vkInstance, surface);
+	swapChain = std::make_unique<SwapChain>(*device_, surface, windowExtent);
+	pipeline = std::make_unique<Pipeline>(*device_, *swapChain, "shaders/shader.spv", windowExtent);
+
+	createCommandBuffer();
+	createSyncObjects();
 }

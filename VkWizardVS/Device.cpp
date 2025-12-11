@@ -74,7 +74,10 @@ vk::raii::Device createLogicalDevice(vk::raii::PhysicalDevice physicalDevice, u3
 		vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT
 	> featureChain = {
 		{},                               // vk::PhysicalDeviceFeatures2 (empty for now)
-		{.dynamicRendering = true },      // Enable dynamic rendering from Vulkan 1.3
+		{
+			.synchronization2 = true,
+			.dynamicRendering = true,
+		},      // Enable dynamic rendering from Vulkan 1.3
 		{.extendedDynamicState = true }   // Enable extended dynamic state from the extension
 	};
 
@@ -92,15 +95,23 @@ vk::raii::Device createLogicalDevice(vk::raii::PhysicalDevice physicalDevice, u3
 vkwiz::Device::Device(vk::raii::Instance& instance, vk::raii::SurfaceKHR& surface) : surface(surface)
 {
 	physicalDevice = pickPhysicalDevice(instance);
-	auto graphicsIndex = findQueueFamilies(physicalDevice);
+	graphicsIndex_ = findQueueFamilies(physicalDevice);
 
 	// TODO: Consider different queue families for presentation
-	if (!physicalDevice.getSurfaceSupportKHR(graphicsIndex, this->surface))
+	if (!physicalDevice.getSurfaceSupportKHR(graphicsIndex_, this->surface))
 		throw std::runtime_error("Selected physical device does not support presentation to the given surface.");
 
-	device = createLogicalDevice(physicalDevice, graphicsIndex);
-	graphicsQueue = vk::raii::Queue(device, graphicsIndex, 0);
+	device = createLogicalDevice(physicalDevice, graphicsIndex_);
+	graphicsQueue = vk::raii::Queue(device, graphicsIndex_, 0);
 	presentQueue = graphicsQueue;
+
+	commandPool_ = vk::raii::CommandPool(
+		device,
+		vk::CommandPoolCreateInfo{
+			.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+			.queueFamilyIndex = graphicsIndex_,
+		}
+		);
 }
 
 SwapchainSurfaceSupportDetails vkwiz::Device::querySwapchainSupportDetails(vk::raii::SurfaceKHR& surface, vk::Extent2D windowExtent)
@@ -119,4 +130,14 @@ SwapchainSurfaceSupportDetails vkwiz::Device::querySwapchainSupportDetails(vk::r
 vk::raii::Device& vkwiz::Device::getDevice()
 {
 	return device;
+}
+
+u32 vkwiz::Device::graphicsIndex()
+{
+	return graphicsIndex_;
+}
+
+vk::raii::CommandPool& vkwiz::Device::commandPool()
+{
+	return commandPool_;
 }

@@ -36,7 +36,7 @@ vkwiz::SwapChain::SwapChain(Device& device, vk::raii::SurfaceKHR& surface, vk::E
 	auto swapChainSupport = device.querySwapchainSupportDetails(surface, windowExtent);
 	auto format = chooseSwapSurfaceFormat(swapChainSupport.formats);
 	auto presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-	extent = chooseSwapExtent(swapChainSupport.capabilities, windowExtent);
+	extent_ = chooseSwapExtent(swapChainSupport.capabilities, windowExtent);
 	// TODO: considerar o surface capabilities
 	u32 minImageCount = 3;
 
@@ -46,7 +46,7 @@ vkwiz::SwapChain::SwapChain(Device& device, vk::raii::SurfaceKHR& surface, vk::E
 		.minImageCount = minImageCount,
 		.imageFormat = format.format,
 		.imageColorSpace = format.colorSpace,
-		.imageExtent = extent,
+		.imageExtent = extent_,
 		.imageArrayLayers = 1,
 		.imageUsage = vk::ImageUsageFlagBits::eColorAttachment,
 		.imageSharingMode = vk::SharingMode::eExclusive,
@@ -62,6 +62,15 @@ vkwiz::SwapChain::SwapChain(Device& device, vk::raii::SurfaceKHR& surface, vk::E
 	images = swapChain.getImages();
 
 	createImageViews();
+}
+
+std::tuple<vk::Image, vk::ImageView> vkwiz::SwapChain::acquireImage(const vk::raii::Semaphore& semaphore, const vk::raii::Fence& fence)
+{
+	auto [result, index] = swapChain.acquireNextImage(UINT64_MAX, *semaphore, *fence);
+	if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
+		throw runtime_error("Failed to acquire swap chain image!");
+	}
+	return { images[index], imageViews[index] };
 }
 
 void vkwiz::SwapChain::createImageViews()
@@ -84,10 +93,10 @@ void vkwiz::SwapChain::createImageViews()
 			.layerCount = 1,
 		},
 	};
-
-	imageViews = vector<vk::ImageView>(images.size());
-	for (size_t i = 0; i < images.size(); i++) {
-		createInfo.image = images[i];
-		imageViews[i] = vk::raii::ImageView(*device, createInfo);
+	imageViews.clear();
+	//imageViews = vector<vk::raii::ImageView>(images.size());
+	for (auto image : images) {
+		createInfo.image = image;
+		imageViews.emplace_back(*device, createInfo);
 	}
 }

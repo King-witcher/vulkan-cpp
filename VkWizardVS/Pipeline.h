@@ -13,6 +13,7 @@ namespace vkwiz {
 	{
 	public:
 		Pipeline(Device& device, vkwiz::SwapChain& swapchain, std::string shaderPath, vk::Extent2D extent);
+		vk::raii::Pipeline& getPipeline() { return pipeline_; }
 
 	private:
 		Device& device_;
