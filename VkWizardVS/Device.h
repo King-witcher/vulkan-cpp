@@ -14,14 +14,18 @@ namespace vkwiz {
 	{
 	public:
 		Device(vk::raii::Instance& instance, vk::raii::SurfaceKHR& surface);
+
 		SwapchainSurfaceSupportDetails querySwapchainSupportDetails(vk::raii::SurfaceKHR& surface, vk::Extent2D windowExtent);
-		vk::raii::Device& vkDevice();
-		u32 graphicsIndex();
 		void resetFence(vk::Fence fence);
 		vk::Result waitForFence(vk::Fence fence);
 		void submitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence);
 		void present(vk::PresentInfoKHR presentInfo);
 		std::vector<vk::raii::CommandBuffer> allocateCommandBuffers(u32 count) const;
+		vk::raii::Semaphore createSemaphore() const;
+		vk::raii::Fence createFence(bool signaled = true) const;
+
+		u32 graphicsIndex();
+		vk::raii::Device& vkDevice() { return vkDevice_; }
 		vk::raii::CommandPool& vkCommandPool() { return vkCommandPool_; }
 
 	private:

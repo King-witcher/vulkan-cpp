@@ -127,11 +127,6 @@ SwapchainSurfaceSupportDetails vkwiz::Device::querySwapchainSupportDetails(vk::r
 	};
 }
 
-vk::raii::Device& vkwiz::Device::vkDevice()
-{
-	return vkDevice_;
-}
-
 u32 vkwiz::Device::graphicsIndex()
 {
 	return graphicsIndex_;
@@ -167,4 +162,16 @@ std::vector<vk::raii::CommandBuffer> vkwiz::Device::allocateCommandBuffers(u32 c
 		.commandBufferCount = count,
 	};
 	return vkDevice_.allocateCommandBuffers(allocateInfo);
+}
+
+vk::raii::Semaphore vkwiz::Device::createSemaphore() const
+{
+	return vkDevice_.createSemaphore({});
+}
+
+vk::raii::Fence vkwiz::Device::createFence(bool signaled) const
+{
+	return vkDevice_.createFence({
+		.flags = signaled ? vk::FenceCreateFlagBits::eSignaled : vk::FenceCreateFlags{},
+		});
 }

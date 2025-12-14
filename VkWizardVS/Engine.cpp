@@ -25,7 +25,7 @@ vk::raii::Instance vkwiz::Engine::createInstance() const {
 	};
 
 	u32 extensionCount = 0;
-	auto requiredExtensions = window.getRequiredVulkanExtensions(&extensionCount);
+	auto requiredExtensions = window_.getRequiredVulkanExtensions(&extensionCount);
 	auto supportedExtensions = vk::enumerateInstanceExtensionProperties();
 	// TODO: check for supported extensions
 
@@ -44,7 +44,7 @@ vk::raii::Instance vkwiz::Engine::createInstance() const {
 		.ppEnabledExtensionNames = requiredExtensions,
 	};
 
-	auto instance = vk::raii::Instance(vkContext, createInfo);
+	auto instance = vk::raii::Instance(vkContext_, createInfo);
 	std::cout << "Vulkan instance created." << std::endl;
 	return instance;
 }
@@ -87,7 +87,7 @@ void transition_image_layout(
 
 void vkwiz::Engine::recordCommandBuffer(vk::Image image, vk::ImageView imageView)
 {
-	auto extent = swapChain.extent();
+	auto extent = swapChain_.extent();
 	vkCommandbuffer_.begin({});
 
 	transition_image_layout(
@@ -116,7 +116,7 @@ void vkwiz::Engine::recordCommandBuffer(vk::Image image, vk::ImageView imageView
 	};
 	vkCommandbuffer_.beginRendering(renderingInfo);
 
-	vkCommandbuffer_.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.getPipeline());
+	vkCommandbuffer_.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_.getPipeline());
 
 	vkCommandbuffer_.setViewport(
 		0,
@@ -156,28 +156,18 @@ void vkwiz::Engine::recordCommandBuffer(vk::Image image, vk::ImageView imageView
 	vkCommandbuffer_.end();
 }
 
-void vkwiz::Engine::createSyncObjects()
-{
-	auto device = &device_.vkDevice();
-	presentCompleteSemaphore = device->createSemaphore({});
-	renderCompleteSemaphore = device->createSemaphore({});
-	drawFence = device->createFence(vk::FenceCreateInfo{
-		.flags = vk::FenceCreateFlagBits::eSignaled
-		});
-}
-
 void vkwiz::Engine::draw()
 {
-	device_.waitForFence(*drawFence);
-	device_.resetFence(*drawFence);
+	device_.waitForFence(*drawFence_);
+	device_.resetFence(*drawFence_);
 
-	auto [image, imageView, imageIndex] = swapChain.acquireImage(presentCompleteSemaphore, nullptr);
+	auto [image, imageView, imageIndex] = swapChain_.acquireImage(presentCompleteSemaphore_, nullptr);
 
 	vkCommandbuffer_.reset();
 	recordCommandBuffer(image, imageView);
 
-	auto presentSemaphore = *presentCompleteSemaphore;
-	auto renderSemaphore = *renderCompleteSemaphore;
+	auto presentSemaphore = *presentCompleteSemaphore_;
+	auto renderSemaphore = *renderCompleteSemaphore_;
 	auto commandBuffer = *vkCommandbuffer_;
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 	const vk::SubmitInfo submitInfo{
@@ -189,15 +179,15 @@ void vkwiz::Engine::draw()
 		.signalSemaphoreCount = 1,
 		.pSignalSemaphores = &renderSemaphore
 	};
-	device_.submitGraphics(submitInfo, *drawFence);
+	device_.submitGraphics(submitInfo, *drawFence_);
 	// Testar com o while
 	//device_->waitForFence(*drawFence);
 
 	// Present
-	auto swapChainKHR = *swapChain;
+	auto swapChainKHR = *swapChain_;
 	vk::PresentInfoKHR presentInfo{
 		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &(*renderCompleteSemaphore),
+		.pWaitSemaphores = &(*renderCompleteSemaphore_),
 		.swapchainCount = 1,
 		.pSwapchains = &swapChainKHR,
 		.pImageIndices = &imageIndex,
@@ -206,9 +196,8 @@ void vkwiz::Engine::draw()
 }
 
 vkwiz::Engine::Engine() {
-	window.setPosition(-1400, 200);
-	auto windowExtent = window.getExtent();
+	window_.setPosition(-1400, 200);
+	auto windowExtent = window_.getExtent();
 
 	vkCommandbuffer_ = std::move(device_.allocateCommandBuffers(1)[0]);
-	createSyncObjects();
 }
