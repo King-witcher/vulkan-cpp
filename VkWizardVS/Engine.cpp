@@ -6,15 +6,16 @@
 using namespace vkwiz;
 
 void vkwiz::Engine::run() {
-	draw();
 	for (;;) {
 		input::update();
 		if (input::shouldQuit()) break;
+		draw();
 	}
+	device_.vkDevice().waitIdle();
 	std::cout << "Exiting engine loop." << std::endl;
 }
 
-vk::raii::Instance vkwiz::Engine::createInstance() {
+vk::raii::Instance vkwiz::Engine::createInstance() const {
 	constexpr vk::ApplicationInfo appInfo{
 		.pApplicationName = "VkWizard",
 		.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
@@ -24,7 +25,7 @@ vk::raii::Instance vkwiz::Engine::createInstance() {
 	};
 
 	u32 extensionCount = 0;
-	auto requiredExtensions = window->getRequiredVulkanExtensions(&extensionCount);
+	auto requiredExtensions = window.getRequiredVulkanExtensions(&extensionCount);
 	auto supportedExtensions = vk::enumerateInstanceExtensionProperties();
 	// TODO: check for supported extensions
 
@@ -84,25 +85,13 @@ void transition_image_layout(
 	commandBuffer.pipelineBarrier2(dependencyInfo);
 }
 
-void vkwiz::Engine::createCommandBuffer()
-{
-	auto commandPool = &device_->commandPool();
-	auto device = &device_->getDevice();
-	vk::CommandBufferAllocateInfo allocInfo{
-		.commandPool = *commandPool,
-		.level = vk::CommandBufferLevel::ePrimary,
-		.commandBufferCount = 1
-	};
-	commandBuffer_ = std::move(vk::raii::CommandBuffers(*device, allocInfo).front());
-}
-
 void vkwiz::Engine::recordCommandBuffer(vk::Image image, vk::ImageView imageView)
 {
-	auto extent = swapChain->extent();
-	commandBuffer_.begin({});
+	auto extent = swapChain.extent();
+	vkCommandbuffer_.begin({});
 
 	transition_image_layout(
-		commandBuffer_,
+		vkCommandbuffer_,
 		image,
 		vk::ImageLayout::eUndefined,
 		vk::ImageLayout::eColorAttachmentOptimal,
@@ -125,11 +114,11 @@ void vkwiz::Engine::recordCommandBuffer(vk::Image image, vk::ImageView imageView
 		.colorAttachmentCount = 1,
 		.pColorAttachments = &colorAttachment,
 	};
-	commandBuffer_.beginRendering(renderingInfo);
+	vkCommandbuffer_.beginRendering(renderingInfo);
 
-	commandBuffer_.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline->getPipeline());
+	vkCommandbuffer_.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.getPipeline());
 
-	commandBuffer_.setViewport(
+	vkCommandbuffer_.setViewport(
 		0,
 		vk::Viewport(
 			0.0f,
@@ -141,7 +130,7 @@ void vkwiz::Engine::recordCommandBuffer(vk::Image image, vk::ImageView imageView
 		)
 	);
 
-	commandBuffer_.setScissor(
+	vkCommandbuffer_.setScissor(
 		0,
 		vk::Rect2D{
 			.offset = vk::Offset2D{ 0, 0 },
@@ -149,12 +138,12 @@ void vkwiz::Engine::recordCommandBuffer(vk::Image image, vk::ImageView imageView
 		}
 	);
 
-	commandBuffer_.draw(3, 1, 0, 0);
+	vkCommandbuffer_.draw(3, 1, 0, 0);
 
-	commandBuffer_.endRendering();
+	vkCommandbuffer_.endRendering();
 
 	transition_image_layout(
-		commandBuffer_,
+		vkCommandbuffer_,
 		image,
 		vk::ImageLayout::eColorAttachmentOptimal,
 		vk::ImageLayout::ePresentSrcKHR,
@@ -164,33 +153,62 @@ void vkwiz::Engine::recordCommandBuffer(vk::Image image, vk::ImageView imageView
 		vk::PipelineStageFlagBits2::eBottomOfPipe
 	);
 
-	commandBuffer_.end();
+	vkCommandbuffer_.end();
 }
 
 void vkwiz::Engine::createSyncObjects()
 {
-	auto device = &device_->getDevice();
-	presentCompleteSemaphore = vk::raii::Semaphore(*device, vk::SemaphoreCreateInfo());
-	renderCompleteSemaphore = vk::raii::Semaphore(*device, vk::SemaphoreCreateInfo());
-	drawFence = vk::raii::Fence(*device, vk::FenceCreateInfo{ .flags = vk::FenceCreateFlagBits::eSignaled });
+	auto device = &device_.vkDevice();
+	presentCompleteSemaphore = device->createSemaphore({});
+	renderCompleteSemaphore = device->createSemaphore({});
+	drawFence = device->createFence(vk::FenceCreateInfo{
+		.flags = vk::FenceCreateFlagBits::eSignaled
+		});
 }
 
 void vkwiz::Engine::draw()
 {
-	auto [image, imageView] = swapChain->acquireImage(presentCompleteSemaphore, nullptr);
+	device_.waitForFence(*drawFence);
+	device_.resetFence(*drawFence);
+
+	auto [image, imageView, imageIndex] = swapChain.acquireImage(presentCompleteSemaphore, nullptr);
+
+	vkCommandbuffer_.reset();
 	recordCommandBuffer(image, imageView);
-	// Reset fence
+
+	auto presentSemaphore = *presentCompleteSemaphore;
+	auto renderSemaphore = *renderCompleteSemaphore;
+	auto commandBuffer = *vkCommandbuffer_;
+	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+	const vk::SubmitInfo submitInfo{
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &presentSemaphore,
+		.pWaitDstStageMask = &waitDestinationStageMask,
+		.commandBufferCount = 1,
+		.pCommandBuffers = &commandBuffer,
+		.signalSemaphoreCount = 1,
+		.pSignalSemaphores = &renderSemaphore
+	};
+	device_.submitGraphics(submitInfo, *drawFence);
+	// Testar com o while
+	//device_->waitForFence(*drawFence);
+
+	// Present
+	auto swapChainKHR = *swapChain;
+	vk::PresentInfoKHR presentInfo{
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &(*renderCompleteSemaphore),
+		.swapchainCount = 1,
+		.pSwapchains = &swapChainKHR,
+		.pImageIndices = &imageIndex,
+	};
+	device_.present(presentInfo);
 }
 
 vkwiz::Engine::Engine() {
-	window = std::make_unique<Window>("VkWizard");
-	auto windowExtent = window->getExtent();
-	vkInstance = createInstance();
-	surface = window->getVulkanSurface(vkInstance);
-	device_ = std::make_unique<Device>(vkInstance, surface);
-	swapChain = std::make_unique<SwapChain>(*device_, surface, windowExtent);
-	pipeline = std::make_unique<Pipeline>(*device_, *swapChain, "shaders/shader.spv", windowExtent);
+	window.setPosition(-1400, 200);
+	auto windowExtent = window.getExtent();
 
-	createCommandBuffer();
+	vkCommandbuffer_ = std::move(device_.allocateCommandBuffers(1)[0]);
 	createSyncObjects();
 }

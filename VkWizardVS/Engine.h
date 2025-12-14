@@ -17,20 +17,19 @@ namespace vkwiz {
 
 	private:
 		vk::raii::Context vkContext;
-		vk::raii::Instance vkInstance = nullptr;
-		std::unique_ptr<Window> window = nullptr;
-		vk::raii::SurfaceKHR surface = nullptr;
-		std::unique_ptr<Device> device_ = nullptr;
-		std::unique_ptr<SwapChain> swapChain = nullptr;
-		std::unique_ptr<Pipeline> pipeline = nullptr;
-		vk::raii::CommandBuffer commandBuffer_ = nullptr;
+		Window window{ "Vulkan Window" };
+		vk::raii::Instance vkInstance = createInstance();
+		vk::raii::SurfaceKHR surface = window.getVulkanSurface(vkInstance);
+		Device device_ = { vkInstance, surface };
+		SwapChain swapChain = { device_, surface, window.getExtent() };
+		Pipeline pipeline = { device_, swapChain, "shaders/shader.spv", window.getExtent() };
 
+		vk::raii::CommandBuffer vkCommandbuffer_ = nullptr;
 		vk::raii::Semaphore presentCompleteSemaphore = nullptr;
 		vk::raii::Semaphore renderCompleteSemaphore = nullptr;
 		vk::raii::Fence drawFence = nullptr;
 
-		vk::raii::Instance createInstance();
-		void createCommandBuffer();
+		vk::raii::Instance createInstance() const;
 		void recordCommandBuffer(vk::Image image, vk::ImageView imageView);
 		void createSyncObjects();
 		void draw();

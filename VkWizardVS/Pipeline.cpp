@@ -20,7 +20,7 @@ static vector<u8> readFile(const string& filename) {
 vkwiz::Pipeline::Pipeline(Device& device, vkwiz::SwapChain& swapchain, std::string shaderPath, vk::Extent2D extent)
 	: device_(device)
 {
-	auto logicalDevice = &device_.getDevice();
+	auto logicalDevice = &device_.vkDevice();
 	auto shaderCode = readFile(shaderPath);
 	createShaderModule(std::move(shaderCode));
 
@@ -129,7 +129,7 @@ vkwiz::Pipeline::Pipeline(Device& device, vkwiz::SwapChain& swapchain, std::stri
 
 void vkwiz::Pipeline::createShaderModule(const std::vector<u8> code)
 {
-	auto device = &device_.getDevice();
+	auto device = &device_.vkDevice();
 	vk::ShaderModuleCreateInfo createInfo{
 		.codeSize = code.size(),
 		.pCode = reinterpret_cast<const u32*>(code.data()),

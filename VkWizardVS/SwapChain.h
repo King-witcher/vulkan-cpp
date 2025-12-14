@@ -14,7 +14,9 @@ namespace vkwiz {
 		vk::Image getImage(u32 index) const { return images[index]; }
 		vk::ImageView getImageView(u32 index) const { return imageViews[index]; }
 		vk::Extent2D extent() const { return extent_; }
-		std::tuple<vk::Image, vk::ImageView> acquireImage(const vk::raii::Semaphore& semaphore, const vk::raii::Fence& fence);
+		std::tuple<vk::Image, vk::ImageView, u32> acquireImage(const vk::Semaphore semaphore, const vk::Fence fence);
+
+		vk::SwapchainKHR operator*() const { return *swapChain; }
 
 	private:
 		Device& device_;

@@ -14,11 +14,11 @@ vk::SurfaceFormatKHR chooseSwapSurfaceFormat(vector<vk::SurfaceFormatKHR> format
 
 vk::PresentModeKHR chooseSwapPresentMode(std::vector<vk::PresentModeKHR> presentModes)
 {
-	for (const auto& mode : presentModes) {
-		if (mode == vk::PresentModeKHR::eMailbox) {
-			return mode;
-		}
-	}
+	//for (const auto& mode : presentModes) {
+	//	if (mode == vk::PresentModeKHR::eMailbox) {
+	//		return mode;
+	//	}
+	//}
 	return vk::PresentModeKHR::eFifo;
 }
 
@@ -38,7 +38,7 @@ vkwiz::SwapChain::SwapChain(Device& device, vk::raii::SurfaceKHR& surface, vk::E
 	auto presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
 	extent_ = chooseSwapExtent(swapChainSupport.capabilities, windowExtent);
 	// TODO: considerar o surface capabilities
-	u32 minImageCount = 3;
+	u32 minImageCount = swapChainSupport.capabilities.minImageCount + 1;
 
 	vk::SwapchainCreateInfoKHR swapChainCreateInfo{
 		.flags = vk::SwapchainCreateFlagsKHR(),
@@ -57,25 +57,25 @@ vkwiz::SwapChain::SwapChain(Device& device, vk::raii::SurfaceKHR& surface, vk::E
 		.oldSwapchain = VK_NULL_HANDLE
 	};
 
-	swapChain = vk::raii::SwapchainKHR(device.getDevice(), swapChainCreateInfo);
+	swapChain = vk::raii::SwapchainKHR(device.vkDevice(), swapChainCreateInfo);
 	imageFormat_ = format.format;
 	images = swapChain.getImages();
 
 	createImageViews();
 }
 
-std::tuple<vk::Image, vk::ImageView> vkwiz::SwapChain::acquireImage(const vk::raii::Semaphore& semaphore, const vk::raii::Fence& fence)
+std::tuple<vk::Image, vk::ImageView, u32> vkwiz::SwapChain::acquireImage(const vk::Semaphore semaphore, const vk::Fence fence)
 {
-	auto [result, index] = swapChain.acquireNextImage(UINT64_MAX, *semaphore, *fence);
+	auto [result, index] = swapChain.acquireNextImage(UINT64_MAX, semaphore, fence);
 	if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
 		throw runtime_error("Failed to acquire swap chain image!");
 	}
-	return { images[index], imageViews[index] };
+	return { images[index], imageViews[index], index };
 }
 
 void vkwiz::SwapChain::createImageViews()
 {
-	auto device = &device_.getDevice();
+	auto device = &device_.vkDevice();
 	auto createInfo = vk::ImageViewCreateInfo{
 		.viewType = vk::ImageViewType::e2D,
 		.format = imageFormat_,
@@ -94,7 +94,6 @@ void vkwiz::SwapChain::createImageViews()
 		},
 	};
 	imageViews.clear();
-	//imageViews = vector<vk::raii::ImageView>(images.size());
 	for (auto image : images) {
 		createInfo.image = image;
 		imageViews.emplace_back(*device, createInfo);

@@ -92,21 +92,21 @@ vk::raii::Device createLogicalDevice(vk::raii::PhysicalDevice physicalDevice, u3
 	return vk::raii::Device(physicalDevice, deviceCreateInfo);
 }
 
-vkwiz::Device::Device(vk::raii::Instance& instance, vk::raii::SurfaceKHR& surface) : surface(surface)
+vkwiz::Device::Device(vk::raii::Instance& instance, vk::raii::SurfaceKHR& surface) : vkSurface(surface)
 {
-	physicalDevice = pickPhysicalDevice(instance);
-	graphicsIndex_ = findQueueFamilies(physicalDevice);
+	vkPhysicalDevice_ = pickPhysicalDevice(instance);
+	graphicsIndex_ = findQueueFamilies(vkPhysicalDevice_);
 
 	// TODO: Consider different queue families for presentation
-	if (!physicalDevice.getSurfaceSupportKHR(graphicsIndex_, this->surface))
+	if (!vkPhysicalDevice_.getSurfaceSupportKHR(graphicsIndex_, this->vkSurface))
 		throw std::runtime_error("Selected physical device does not support presentation to the given surface.");
 
-	device = createLogicalDevice(physicalDevice, graphicsIndex_);
-	graphicsQueue = vk::raii::Queue(device, graphicsIndex_, 0);
-	presentQueue = graphicsQueue;
+	vkDevice_ = createLogicalDevice(vkPhysicalDevice_, graphicsIndex_);
+	vkGraphicsQueue_ = vk::raii::Queue(vkDevice_, graphicsIndex_, 0);
+	vkPresentQueue_ = vkGraphicsQueue_;
 
-	commandPool_ = vk::raii::CommandPool(
-		device,
+	vkCommandPool_ = vk::raii::CommandPool(
+		vkDevice_,
 		vk::CommandPoolCreateInfo{
 			.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
 			.queueFamilyIndex = graphicsIndex_,
@@ -116,9 +116,9 @@ vkwiz::Device::Device(vk::raii::Instance& instance, vk::raii::SurfaceKHR& surfac
 
 SwapchainSurfaceSupportDetails vkwiz::Device::querySwapchainSupportDetails(vk::raii::SurfaceKHR& surface, vk::Extent2D windowExtent)
 {
-	auto capabilities = physicalDevice.getSurfaceCapabilitiesKHR(surface);
-	auto formats = physicalDevice.getSurfaceFormatsKHR(surface);
-	auto presentModes = physicalDevice.getSurfacePresentModesKHR(surface);
+	auto capabilities = vkPhysicalDevice_.getSurfaceCapabilitiesKHR(surface);
+	auto formats = vkPhysicalDevice_.getSurfaceFormatsKHR(surface);
+	auto presentModes = vkPhysicalDevice_.getSurfacePresentModesKHR(surface);
 
 	return SwapchainSurfaceSupportDetails{
 		.capabilities = capabilities,
@@ -127,9 +127,9 @@ SwapchainSurfaceSupportDetails vkwiz::Device::querySwapchainSupportDetails(vk::r
 	};
 }
 
-vk::raii::Device& vkwiz::Device::getDevice()
+vk::raii::Device& vkwiz::Device::vkDevice()
 {
-	return device;
+	return vkDevice_;
 }
 
 u32 vkwiz::Device::graphicsIndex()
@@ -137,7 +137,34 @@ u32 vkwiz::Device::graphicsIndex()
 	return graphicsIndex_;
 }
 
-vk::raii::CommandPool& vkwiz::Device::commandPool()
+void vkwiz::Device::resetFence(vk::Fence fence)
 {
-	return commandPool_;
+	vkDevice_.resetFences(fence);
+}
+
+vk::Result vkwiz::Device::waitForFence(vk::Fence fence)
+{
+	return vkDevice_.waitForFences(fence, vk::True, UINT64_MAX);
+}
+
+void vkwiz::Device::submitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence)
+{
+	vkGraphicsQueue_.submit(submitInfo, fence);
+}
+
+void vkwiz::Device::present(vk::PresentInfoKHR presentInfo)
+{
+	if (vkPresentQueue_.presentKHR(presentInfo) != vk::Result::eSuccess) {
+		throw std::runtime_error("Failed to present swapchain image.");
+	}
+}
+
+std::vector<vk::raii::CommandBuffer> vkwiz::Device::allocateCommandBuffers(u32 count) const
+{
+	vk::CommandBufferAllocateInfo allocateInfo{
+		.commandPool = vkCommandPool_,
+		.level = vk::CommandBufferLevel::ePrimary,
+		.commandBufferCount = count,
+	};
+	return vkDevice_.allocateCommandBuffers(allocateInfo);
 }

@@ -14,6 +14,7 @@ namespace vkwiz {
 		vk::raii::SurfaceKHR getVulkanSurface(vk::raii::Instance& instance) const;
 		char const* const* getRequiredVulkanExtensions(u32* extensionCount) const;
 		vk::Extent2D getExtent() const;
+		void setPosition(i32 x, i32 y) { SDL_SetWindowPosition(window_, x, y); }
 
 	private:
 		SDL_Window* window_;
