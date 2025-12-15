@@ -7,10 +7,10 @@
 using namespace vkwiz;
 
 void vkwiz::Engine::run() {
+	draw();
 	for (;;) {
 		input::update();
 		if (input::shouldQuit()) break;
-		draw();
 	}
 	device_.vkDevice().waitIdle();
 	std::cout << "Exiting engine loop." << std::endl;

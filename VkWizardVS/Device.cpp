@@ -1,10 +1,12 @@
 #include "Device.h"
 #include "RustTypes.h"
+
 #include <vector>
+#include <array>
 
 using namespace vkwiz;
 
-std::vector<const char*> REQUIRED_EXTENSIONS = {
+std::array REQUIRED_EXTENSIONS = {
 	vk::KHRShaderDrawParametersExtensionName,
 	vk::KHRCreateRenderpass2ExtensionName,
 	vk::KHRSynchronization2ExtensionName,
@@ -61,12 +63,9 @@ u32 findQueueFamilies(vk::raii::PhysicalDevice device)
 
 vk::raii::Device createLogicalDevice(vk::raii::PhysicalDevice physicalDevice, u32 graphicsIndex)
 {
-	f32 queuePriority = 0.5f;
-	vk::DeviceQueueCreateInfo deviceQueueCreateInfo{
-		.queueFamilyIndex = graphicsIndex,
-		.queueCount = 1,
-		.pQueuePriorities = &queuePriority
-	};
+	std::array queuePriorities = { 0.5f };
+	std::array queueCreateInfos = { vk::DeviceQueueCreateInfo() };
+	queueCreateInfos[0].setQueuePriorities(queuePriorities);
 
 	vk::StructureChain<
 		vk::PhysicalDeviceFeatures2,
@@ -81,13 +80,10 @@ vk::raii::Device createLogicalDevice(vk::raii::PhysicalDevice physicalDevice, u3
 		{.extendedDynamicState = true }   // Enable extended dynamic state from the extension
 	};
 
-	vk::DeviceCreateInfo deviceCreateInfo{
-		.pNext = &featureChain.get<vk::PhysicalDeviceFeatures2>(),
-		.queueCreateInfoCount = 1,
-		.pQueueCreateInfos = &deviceQueueCreateInfo,
-		.enabledExtensionCount = static_cast<u32>(REQUIRED_EXTENSIONS.size()),
-		.ppEnabledExtensionNames = REQUIRED_EXTENSIONS.data(),
-	};
+	vk::DeviceCreateInfo deviceCreateInfo{};
+	deviceCreateInfo.setPNext(&featureChain.get());
+	deviceCreateInfo.setQueueCreateInfos(queueCreateInfos);
+	deviceCreateInfo.setPEnabledExtensionNames(REQUIRED_EXTENSIONS);
 
 	return vk::raii::Device(physicalDevice, deviceCreateInfo);
 }
