@@ -18,8 +18,10 @@ vk::raii::SurfaceKHR vkwiz::Window::getVulkanSurface(vk::raii::Instance& instanc
 	return vk::raii::SurfaceKHR(instance, surface);
 }
 
-char const* const* vkwiz::Window::getRequiredVulkanExtensions(u32* extensionCount) const {
-	return SDL_Vulkan_GetInstanceExtensions(extensionCount);
+std::span<const char* const> vkwiz::Window::getRequiredVulkanExtensions() const {
+	u32 extensionCount = 0;
+	auto extensions = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
+	return std::span(extensions, extensionCount);
 }
 
 vk::Extent2D vkwiz::Window::getExtent() const

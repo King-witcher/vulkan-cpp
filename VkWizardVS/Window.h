@@ -2,7 +2,9 @@
 
 #include "Vulkan.h"
 #include "RustTypes.h"
+
 #include <SDL3/SDL.h>
+#include <span>
 
 namespace vkwiz {
 	class Window {
@@ -12,7 +14,7 @@ namespace vkwiz {
 		~Window();
 
 		vk::raii::SurfaceKHR getVulkanSurface(vk::raii::Instance& instance) const;
-		char const* const* getRequiredVulkanExtensions(u32* extensionCount) const;
+		std::span<const char* const> getRequiredVulkanExtensions() const;
 		vk::Extent2D getExtent() const;
 		void setPosition(i32 x, i32 y) { SDL_SetWindowPosition(window_, x, y); }
 

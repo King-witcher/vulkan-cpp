@@ -1,6 +1,7 @@
 #include "Engine.h"
 #include "RustTypes.h"
 #include "Input.h"
+
 #include <iostream>
 
 using namespace vkwiz;
@@ -16,18 +17,13 @@ void vkwiz::Engine::run() {
 }
 
 vk::raii::Instance vkwiz::Engine::createInstance() const {
-	constexpr vk::ApplicationInfo appInfo{
-		.pApplicationName = "VkWizard",
-		.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-		.pEngineName = "No Engine",
-		.engineVersion = VK_MAKE_VERSION(1, 0, 0),
-		.apiVersion = vk::ApiVersion14
-	};
+	vk::ApplicationInfo appInfo;
+	appInfo.setPApplicationName("VkWizard");
+	appInfo.setApplicationVersion(vk::makeVersion(1, 0, 0));
+	appInfo.setPEngineName("No Engine");
+	appInfo.setEngineVersion(vk::makeVersion(1, 0, 0));
+	appInfo.setApiVersion(vk::ApiVersion14);
 
-	u32 extensionCount = 0;
-	auto requiredExtensions = window_.getRequiredVulkanExtensions(&extensionCount);
-	auto supportedExtensions = vk::enumerateInstanceExtensionProperties();
-	// TODO: check for supported extensions
 
 #ifdef NDEBUG
 	auto layers = std::vector<const char*>{};
@@ -36,15 +32,14 @@ vk::raii::Instance vkwiz::Engine::createInstance() const {
 	std::cout << "Enabling validation layers..." << std::endl;
 #endif
 
-	vk::InstanceCreateInfo createInfo{
-		.pApplicationInfo = &appInfo,
-		.enabledLayerCount = static_cast<u32>(layers.size()),
-		.ppEnabledLayerNames = layers.data(),
-		.enabledExtensionCount = static_cast<u32>(extensionCount),
-		.ppEnabledExtensionNames = requiredExtensions,
-	};
+	auto requiredExtensions = window_.getRequiredVulkanExtensions();
+	// TODO: check for supported extensions
+	vk::InstanceCreateInfo createInfo;
+	createInfo.setPApplicationInfo(&appInfo);
+	createInfo.setPEnabledLayerNames(layers);
+	createInfo.setPEnabledExtensionNames(requiredExtensions);
 
-	auto instance = vk::raii::Instance(vkContext_, createInfo);
+	auto instance = vkContext_.createInstance(createInfo);
 	std::cout << "Vulkan instance created." << std::endl;
 	return instance;
 }
@@ -158,8 +153,8 @@ void vkwiz::Engine::recordCommandBuffer(vk::Image image, vk::ImageView imageView
 
 void vkwiz::Engine::draw()
 {
-	device_.waitForFence(*drawFence_);
-	device_.resetFence(*drawFence_);
+	device_.waitForFence(drawFence_);
+	device_.resetFence(drawFence_);
 
 	auto [image, imageView, imageIndex] = swapChain_.acquireImage(presentCompleteSemaphore_, nullptr);
 
@@ -169,29 +164,27 @@ void vkwiz::Engine::draw()
 	auto presentSemaphore = *presentCompleteSemaphore_;
 	auto renderSemaphore = *renderCompleteSemaphore_;
 	auto commandBuffer = *vkCommandbuffer_;
+
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-	const vk::SubmitInfo submitInfo{
-		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &presentSemaphore,
-		.pWaitDstStageMask = &waitDestinationStageMask,
-		.commandBufferCount = 1,
-		.pCommandBuffers = &commandBuffer,
-		.signalSemaphoreCount = 1,
-		.pSignalSemaphores = &renderSemaphore
-	};
+
+	vk::SubmitInfo submitInfo;
+	submitInfo.setWaitSemaphores({ presentSemaphore });
+	submitInfo.setPWaitDstStageMask(&waitDestinationStageMask);
+	submitInfo.setCommandBuffers({ commandBuffer });
+	submitInfo.setSignalSemaphores({ renderSemaphore });
+
 	device_.submitGraphics(submitInfo, *drawFence_);
 	// Testar com o while
 	//device_->waitForFence(*drawFence);
 
 	// Present
-	auto swapChainKHR = *swapChain_;
-	vk::PresentInfoKHR presentInfo{
-		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &(*renderCompleteSemaphore_),
-		.swapchainCount = 1,
-		.pSwapchains = &swapChainKHR,
-		.pImageIndices = &imageIndex,
-	};
+	auto& vkSwapChain = swapChain_.vkSwapChain();
+
+	vk::PresentInfoKHR presentInfo;
+	presentInfo.setWaitSemaphores({ renderSemaphore });
+	presentInfo.setSwapchains({ *vkSwapChain });
+	presentInfo.setImageIndices({ imageIndex });
+
 	device_.present(presentInfo);
 }
 

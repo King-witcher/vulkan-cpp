@@ -132,14 +132,14 @@ u32 vkwiz::Device::graphicsIndex()
 	return graphicsIndex_;
 }
 
-void vkwiz::Device::resetFence(vk::Fence fence)
+void vkwiz::Device::resetFence(vk::raii::Fence& fence)
 {
-	vkDevice_.resetFences(fence);
+	vkDevice_.resetFences(*fence);
 }
 
-vk::Result vkwiz::Device::waitForFence(vk::Fence fence)
+vk::Result vkwiz::Device::waitForFence(vk::raii::Fence& fence)
 {
-	return vkDevice_.waitForFences(fence, vk::True, UINT64_MAX);
+	return vkDevice_.waitForFences(*fence, vk::True, UINT64_MAX);
 }
 
 void vkwiz::Device::submitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence)
@@ -147,7 +147,7 @@ void vkwiz::Device::submitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence)
 	vkGraphicsQueue_.submit(submitInfo, fence);
 }
 
-void vkwiz::Device::present(vk::PresentInfoKHR presentInfo)
+void vkwiz::Device::present(vk::PresentInfoKHR& presentInfo)
 {
 	if (vkPresentQueue_.presentKHR(presentInfo) != vk::Result::eSuccess) {
 		throw std::runtime_error("Failed to present swapchain image.");

@@ -16,10 +16,10 @@ namespace vkwiz {
 		Device(vk::raii::Instance& instance, vk::raii::SurfaceKHR& surface);
 
 		SwapchainSurfaceSupportDetails querySwapchainSupportDetails(vk::raii::SurfaceKHR& surface, vk::Extent2D windowExtent);
-		void resetFence(vk::Fence fence);
-		vk::Result waitForFence(vk::Fence fence);
+		void resetFence(vk::raii::Fence& fence);
+		vk::Result waitForFence(vk::raii::Fence& fence);
 		void submitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence);
-		void present(vk::PresentInfoKHR presentInfo);
+		void present(vk::PresentInfoKHR& presentInfo);
 		std::vector<vk::raii::CommandBuffer> allocateCommandBuffers(u32 count) const;
 		vk::raii::Semaphore createSemaphore() const;
 		vk::raii::Fence createFence(bool signaled = true) const;
