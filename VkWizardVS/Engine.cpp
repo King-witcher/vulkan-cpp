@@ -6,9 +6,11 @@
 
 using namespace vkwiz;
 
+const u32 MAX_FRAMES_IN_FLIGHT = 2;
+
 void vkwiz::Engine::run() {
-	draw();
 	for (;;) {
+		draw();
 		input::update();
 		if (input::shouldQuit()) break;
 	}
@@ -42,6 +44,21 @@ vk::raii::Instance vkwiz::Engine::createInstance() const {
 	auto instance = vkContext_.createInstance(createInfo);
 	std::cout << "Vulkan instance created." << std::endl;
 	return instance;
+}
+
+void vkwiz::Engine::createSyncObjects()
+{
+	auto imageCount = swapChain_.imageCount();
+	for (size_t i = 0; i < imageCount; i++)
+	{
+		renderFinishedSemaphores_.emplace_back(device_.vkDevice(), vk::SemaphoreCreateInfo());
+	}
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		presentCompleteSemaphores_.emplace_back(device_.vkDevice(), vk::SemaphoreCreateInfo());
+		inFlightFences_.emplace_back(device_.vkDevice(), vk::FenceCreateInfo{ .flags = vk::FenceCreateFlagBits::eSignaled });
+	}
 }
 
 void transition_image_layout(
@@ -80,13 +97,13 @@ void transition_image_layout(
 	commandBuffer.pipelineBarrier2(dependencyInfo);
 }
 
-void vkwiz::Engine::recordCommandBuffer(vk::Image image, vk::ImageView imageView)
+void vkwiz::Engine::recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageView imageView)
 {
 	auto extent = swapChain_.extent();
-	vkCommandbuffer_.begin({});
+	commandBuffer.begin({});
 
 	transition_image_layout(
-		vkCommandbuffer_,
+		commandBuffer,
 		image,
 		vk::ImageLayout::eUndefined,
 		vk::ImageLayout::eColorAttachmentOptimal,
@@ -109,11 +126,11 @@ void vkwiz::Engine::recordCommandBuffer(vk::Image image, vk::ImageView imageView
 		.colorAttachmentCount = 1,
 		.pColorAttachments = &colorAttachment,
 	};
-	vkCommandbuffer_.beginRendering(renderingInfo);
+	commandBuffer.beginRendering(renderingInfo);
 
-	vkCommandbuffer_.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_.vkPipeline());
+	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_.vkPipeline());
 
-	vkCommandbuffer_.setViewport(
+	commandBuffer.setViewport(
 		0,
 		vk::Viewport(
 			0.0f,
@@ -125,7 +142,7 @@ void vkwiz::Engine::recordCommandBuffer(vk::Image image, vk::ImageView imageView
 		)
 	);
 
-	vkCommandbuffer_.setScissor(
+	commandBuffer.setScissor(
 		0,
 		vk::Rect2D{
 			.offset = vk::Offset2D{ 0, 0 },
@@ -133,12 +150,12 @@ void vkwiz::Engine::recordCommandBuffer(vk::Image image, vk::ImageView imageView
 		}
 	);
 
-	vkCommandbuffer_.draw(3, 1, 0, 0);
+	commandBuffer.draw(3, 1, 0, 0);
 
-	vkCommandbuffer_.endRendering();
+	commandBuffer.endRendering();
 
 	transition_image_layout(
-		vkCommandbuffer_,
+		commandBuffer,
 		image,
 		vk::ImageLayout::eColorAttachmentOptimal,
 		vk::ImageLayout::ePresentSrcKHR,
@@ -148,49 +165,49 @@ void vkwiz::Engine::recordCommandBuffer(vk::Image image, vk::ImageView imageView
 		vk::PipelineStageFlagBits2::eBottomOfPipe
 	);
 
-	vkCommandbuffer_.end();
+	commandBuffer.end();
 }
 
 void vkwiz::Engine::draw()
 {
-	device_.waitForFence(drawFence_);
-	device_.resetFence(drawFence_);
+	device_.waitForFence(inFlightFences_[frameIndex_]);
+	device_.resetFence(inFlightFences_[frameIndex_]);
 
-	auto [image, imageView, imageIndex] = swapChain_.acquireImage(presentCompleteSemaphore_, nullptr);
+	auto [image, imageView, imageIndex] = swapChain_.acquireImage(presentCompleteSemaphores_[frameIndex_], nullptr);
 
-	vkCommandbuffer_.reset();
-	recordCommandBuffer(image, imageView);
+	vkCommandbuffers_[frameIndex_].reset();
+	recordCommandBuffer(vkCommandbuffers_[frameIndex_], image, imageView);
 
-	auto presentSemaphore = *presentCompleteSemaphore_;
-	auto renderSemaphore = *renderCompleteSemaphore_;
-	auto commandBuffer = *vkCommandbuffer_;
+	auto presentSemaphore = *presentCompleteSemaphores_[frameIndex_];
+	auto renderSemaphore = *renderFinishedSemaphores_[imageIndex];
+	auto commandBuffer = *vkCommandbuffers_[frameIndex_];
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 
-	vk::SubmitInfo submitInfo;
+	vk::SubmitInfo submitInfo{};
 	submitInfo.setWaitSemaphores({ presentSemaphore });
 	submitInfo.setPWaitDstStageMask(&waitDestinationStageMask);
 	submitInfo.setCommandBuffers({ commandBuffer });
 	submitInfo.setSignalSemaphores({ renderSemaphore });
 
-	device_.submitGraphics(submitInfo, *drawFence_);
+	device_.submitGraphics(submitInfo, *inFlightFences_[frameIndex_]);
 	// Testar com o while
 	//device_->waitForFence(*drawFence);
 
 	// Present
 	auto& vkSwapChain = swapChain_.vkSwapChain();
 
-	vk::PresentInfoKHR presentInfo;
+	vk::PresentInfoKHR presentInfo{};
 	presentInfo.setWaitSemaphores({ renderSemaphore });
 	presentInfo.setSwapchains({ *vkSwapChain });
 	presentInfo.setImageIndices({ imageIndex });
 
 	device_.present(presentInfo);
+	frameIndex_ = (frameIndex_ + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 vkwiz::Engine::Engine() {
 	window_.setPosition(-1400, 200);
 	auto windowExtent = window_.getExtent();
-
-	vkCommandbuffer_ = std::move(device_.allocateCommandBuffers(1)[0]);
+	createSyncObjects();
 }

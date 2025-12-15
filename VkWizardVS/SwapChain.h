@@ -19,6 +19,7 @@ namespace vkwiz {
 		vk::Format imageFormat() const { return vkImageFormat_; }
 		vk::Extent2D extent() const { return extent_; }
 		vk::raii::SwapchainKHR& vkSwapChain() { return vkSwapChain_; }
+		usize imageCount() const { return vkImages_.size(); }
 		vk::SwapchainKHR operator*() const { return *vkSwapChain_; }
 
 	private:

@@ -6,7 +6,11 @@
 #include "SwapChain.h"
 #include "Pipeline.h"
 
+#include <vector>
+
 namespace vkwiz {
+	const u32 MAX_FRAMES_IN_FLIGHT = 2;
+
 	class Engine {
 	public:
 		Engine();
@@ -21,14 +25,16 @@ namespace vkwiz {
 		Device device_ = { vkInstance_, vkSurface_ };
 		SwapChain swapChain_ = { device_, vkSurface_, window_.getExtent() };
 		Pipeline pipeline_ = { device_, swapChain_, "shaders/shader.spv", window_.getExtent() };
+		u32 frameIndex_ = 0;
 
-		vk::raii::CommandBuffer vkCommandbuffer_ = nullptr;
-		vk::raii::Semaphore presentCompleteSemaphore_ = device_.createSemaphore();
-		vk::raii::Semaphore renderCompleteSemaphore_ = device_.createSemaphore();
-		vk::raii::Fence drawFence_ = device_.createFence();
+		std::vector<vk::raii::CommandBuffer> vkCommandbuffers_ = device_.allocateCommandBuffers(MAX_FRAMES_IN_FLIGHT);
+		std::vector<vk::raii::Semaphore> renderFinishedSemaphores_;
+		std::vector<vk::raii::Semaphore> presentCompleteSemaphores_;
+		std::vector<vk::raii::Fence> inFlightFences_;
 
 		vk::raii::Instance createInstance() const;
-		void recordCommandBuffer(vk::Image image, vk::ImageView imageView);
+		void createSyncObjects();
+		void recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageView imageView);
 		void draw();
 	};
 }
