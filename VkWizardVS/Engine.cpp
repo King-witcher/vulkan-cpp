@@ -116,7 +116,7 @@ void vkwiz::Engine::recordCommandBuffer(vk::Image image, vk::ImageView imageView
 	};
 	vkCommandbuffer_.beginRendering(renderingInfo);
 
-	vkCommandbuffer_.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_.getPipeline());
+	vkCommandbuffer_.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_.vkPipeline());
 
 	vkCommandbuffer_.setViewport(
 		0,

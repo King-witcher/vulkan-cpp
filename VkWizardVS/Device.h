@@ -23,6 +23,7 @@ namespace vkwiz {
 		std::vector<vk::raii::CommandBuffer> allocateCommandBuffers(u32 count) const;
 		vk::raii::Semaphore createSemaphore() const;
 		vk::raii::Fence createFence(bool signaled = true) const;
+		vk::raii::ShaderModule createShaderModule(const std::vector<u8> code) const;
 
 		u32 graphicsIndex();
 		vk::raii::Device& vkDevice() { return vkDevice_; }

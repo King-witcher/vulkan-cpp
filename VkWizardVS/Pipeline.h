@@ -13,14 +13,12 @@ namespace vkwiz {
 	{
 	public:
 		Pipeline(Device& device, vkwiz::SwapChain& swapchain, std::string shaderPath, vk::Extent2D extent);
-		vk::raii::Pipeline& getPipeline() { return pipeline_; }
+
+		vk::raii::Pipeline& vkPipeline() { return vkPipeline_; }
 
 	private:
-		Device& device_;
-		vk::raii::ShaderModule shaderModule_ = nullptr;
-		vk::raii::PipelineLayout pipelineLayout_ = nullptr;
-		vk::raii::Pipeline pipeline_ = nullptr;
-
-		void createShaderModule(const std::vector<u8> code);
+		vk::raii::ShaderModule vkShaderModule_ = nullptr;
+		vk::raii::PipelineLayout vkPipelineLayout_ = nullptr;
+		vk::raii::Pipeline vkPipeline_ = nullptr;
 	};
 }

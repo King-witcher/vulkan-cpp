@@ -175,3 +175,12 @@ vk::raii::Fence vkwiz::Device::createFence(bool signaled) const
 		.flags = signaled ? vk::FenceCreateFlagBits::eSignaled : vk::FenceCreateFlags{},
 		});
 }
+
+vk::raii::ShaderModule vkwiz::Device::createShaderModule(const std::vector<u8> code) const
+{
+	vk::ShaderModuleCreateInfo createInfo{
+		.codeSize = code.size(),
+		.pCode = reinterpret_cast<const u32*>(code.data()),
+	};
+	return vkDevice_.createShaderModule(createInfo);
+}
