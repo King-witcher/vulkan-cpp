@@ -6,8 +6,6 @@
 
 using namespace vkwiz;
 
-const u32 MAX_FRAMES_IN_FLIGHT = 2;
-
 void vkwiz::Engine::run() {
 	for (;;) {
 		draw();
@@ -184,6 +182,7 @@ void vkwiz::Engine::draw()
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 
+	// Render
 	vk::SubmitInfo submitInfo{};
 	submitInfo.setWaitSemaphores({ presentSemaphore });
 	submitInfo.setPWaitDstStageMask(&waitDestinationStageMask);
@@ -191,8 +190,6 @@ void vkwiz::Engine::draw()
 	submitInfo.setSignalSemaphores({ renderSemaphore });
 
 	device_.submitGraphics(submitInfo, *inFlightFences_[frameIndex_]);
-	// Testar com o while
-	//device_->waitForFence(*drawFence);
 
 	// Present
 	auto& vkSwapChain = swapChain_.vkSwapChain();
