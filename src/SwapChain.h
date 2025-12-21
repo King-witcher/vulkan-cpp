@@ -9,7 +9,7 @@ namespace vkwiz {
 	class SwapChain
 	{
 	public:
-		SwapChain(Device& device, vk::raii::SurfaceKHR& surface, vk::Extent2D windowExtent);
+		SwapChain(Device& device, vk::raii::SurfaceKHR& surface);
 
 		std::tuple<vk::Image, vk::ImageView, u32> acquireImage(const vk::Semaphore semaphore, const vk::Fence fence);
 
@@ -23,6 +23,7 @@ namespace vkwiz {
 		vk::SwapchainKHR operator*() const { return *vkSwapChain_; }
 
 	private:
+		Device& device_;
 		vk::Format vkImageFormat_;
 		vk::Extent2D extent_;
 		vk::raii::SwapchainKHR vkSwapChain_ = nullptr;

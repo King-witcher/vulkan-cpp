@@ -110,7 +110,7 @@ vkwiz::Device::Device(vk::raii::Instance& instance, vk::raii::SurfaceKHR& surfac
 		);
 }
 
-SwapchainSurfaceSupportDetails vkwiz::Device::querySwapchainSupportDetails(vk::raii::SurfaceKHR& surface, vk::Extent2D windowExtent)
+SwapchainSurfaceSupportDetails vkwiz::Device::querySwapchainSupportDetails(vk::raii::SurfaceKHR& surface)
 {
 	auto capabilities = vkPhysicalDevice_.getSurfaceCapabilitiesKHR(surface);
 	auto formats = vkPhysicalDevice_.getSurfaceFormatsKHR(surface);
@@ -145,7 +145,12 @@ void vkwiz::Device::submitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence)
 
 void vkwiz::Device::present(vk::PresentInfoKHR& presentInfo)
 {
-	if (vkPresentQueue_.presentKHR(presentInfo) != vk::Result::eSuccess) {
+	try {
+		if (vkPresentQueue_.presentKHR(presentInfo) != vk::Result::eSuccess) {
+			throw std::runtime_error("Failed to present swapchain image.");
+		}
+	}
+	catch (vk::SystemError& err) {
 		throw std::runtime_error("Failed to present swapchain image.");
 	}
 }

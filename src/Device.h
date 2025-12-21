@@ -15,7 +15,7 @@ namespace vkwiz {
 	public:
 		Device(vk::raii::Instance& instance, vk::raii::SurfaceKHR& surface);
 
-		SwapchainSurfaceSupportDetails querySwapchainSupportDetails(vk::raii::SurfaceKHR& surface, vk::Extent2D windowExtent);
+		SwapchainSurfaceSupportDetails querySwapchainSupportDetails(vk::raii::SurfaceKHR& surface);
 		void resetFence(vk::raii::Fence& fence);
 		vk::Result waitForFence(vk::raii::Fence& fence);
 		void submitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence);

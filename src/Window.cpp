@@ -2,7 +2,7 @@
 #include <SDL3/SDL_vulkan.h>
 
 vkwiz::Window::Window(const char* title) {
-	window_ = SDL_CreateWindow(title, 800, 600, SDL_WINDOW_VULKAN | SDL_WINDOW_MOUSE_RELATIVE_MODE);
+	window_ = SDL_CreateWindow(title, 800, 600, SDL_WINDOW_VULKAN | SDL_WINDOW_MOUSE_RELATIVE_MODE | SDL_WINDOW_RESIZABLE);
 }
 
 vkwiz::Window::~Window() {

@@ -1,0 +1,27 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "compilerPath": "g++",
+            "compilerArgs": [
+                "-I", "${workspaceFolder}/include",
+                "-L", "${workspaceFolder}/lib"
+            ],
+            "includePath": [
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/VkWizardVS"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "windowsSdkVersion": "10.0.22621.0",
+            "cStandard": "c23",
+            "cppStandard": "c++26",
+            "intelliSenseMode": "gcc-x64"
+        }
+    ],
+    "version": 4,
+    "enableConfigurationSquiggles": true
+}

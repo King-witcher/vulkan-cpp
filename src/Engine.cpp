@@ -111,19 +111,19 @@ void vkwiz::Engine::recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, 
 		vk::PipelineStageFlagBits2::eColorAttachmentOutput
 	);
 
-	vk::RenderingAttachmentInfo colorAttachment{
-		.imageView = imageView,
-		.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-		.loadOp = vk::AttachmentLoadOp::eClear,
-		.storeOp = vk::AttachmentStoreOp::eStore,
-		.clearValue = vk::ClearColorValue(0.1f, 0.1f, 0.1f, 1.0f),
-	};
-	vk::RenderingInfo renderingInfo{
-		.renderArea = vk::Rect2D{ {0, 0}, extent },
-		.layerCount = 1,
-		.colorAttachmentCount = 1,
-		.pColorAttachments = &colorAttachment,
-	};
+	vk::RenderingAttachmentInfo colorAtt{};
+	colorAtt.setImageView(imageView);
+	colorAtt.setImageLayout(vk::ImageLayout::eColorAttachmentOptimal);
+	colorAtt.setLoadOp(vk::AttachmentLoadOp::eClear);
+	colorAtt.setStoreOp(vk::AttachmentStoreOp::eStore);
+	colorAtt.setClearValue(vk::ClearColorValue(0.05f, 0.05f, 0.1f, 1.0f));
+
+	std::array colorAtts = { colorAtt };
+
+	vk::RenderingInfo renderingInfo{};
+	renderingInfo.setRenderArea({ {0, 0}, extent });
+	renderingInfo.setLayerCount(1);
+	renderingInfo.setColorAttachments(colorAtts);
 	commandBuffer.beginRendering(renderingInfo);
 
 	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_.vkPipeline());

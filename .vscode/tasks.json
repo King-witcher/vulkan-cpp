@@ -1,0 +1,123 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "File",
+      "description": "Path to a file",
+      "type": "promptString",
+    },
+    {
+      "id": "Link type",
+      "description": "Type of link to create",
+      "type": "pickString",
+      "default": "lib",
+      "options": [
+        {
+          "label": "Binaries",
+          "value": "lib"
+        },
+        {
+          "label": "Headers",
+          "value": "include"
+        }
+      ]
+    },
+  ],
+  "tasks": [
+    {
+      "label": "g++: build (Release)",
+      "icon": {
+        "color": "terminal.ansiGreen",
+        "id": "tools"
+      },
+      "detail": "Compile c++ code for release",
+      "type": "shell",
+      "command": "g++",
+      "args": [
+        "src/**.cpp",
+        "-fdiagnostics-color=always",
+        "-std=c++26",
+        "-I", "include/",
+        "-L", "lib/",
+        "-lvulkan-1",
+        "-lglfw3",
+        "-lgdi32",
+        "-o", "bin/release/program.exe"
+      ],
+      "problemMatcher": "$gcc",
+      "group": "build",
+    },
+    {
+      "label": "g++: build (Debug)",
+      "icon": {
+        "color": "terminal.ansiRed",
+        "id": "tools"
+      },
+      "detail": "Compile c++ code for debugging",
+      "type": "shell",
+      "command": "./build.sh",
+      "problemMatcher": "$gcc",
+      "group": "build"
+    },
+
+    {
+      "label": "glslc: compile",
+      "detail": "Compile all GLSL shaders",
+      "icon": {
+        "color": "terminal.ansiMagenta",
+        "id": "paintcan"
+      },
+      "type": "shell",
+      "group": "build",
+      "command": "./VkWizardVS/slangc.sh",
+      "problemMatcher": {
+        "owner": "glslc",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "(.+\\.(frag|vert)):(\\d+): (error|warning): (.+)",
+          "file": 1,
+          "line": 3,
+          "severity": 4,
+          "message": 5,
+        }
+      }
+    },
+
+    {
+      "label": "project: build (Release)",
+      "detail": "Build all (C++ and GLSL) for release",
+      "icon": {
+        "id": "rocket",
+        "color": "terminal.ansiGreen",
+      },
+      "dependsOn": [
+        "glslc: compile",
+        "g++: build (Release)"
+      ],
+      "dependsOrder": "parallel",
+      "group": "build",
+    },
+
+    {
+      "label": "project: build (Debug)",
+      "detail": "Build all (C++ and GLSL) for debugging",
+      "icon": {
+        "id": "rocket",
+        "color": "terminal.ansiRed",
+      },
+      "dependsOn": [
+        "glslc: compile",
+        "g++: build (Debug)"
+      ],
+      "dependsOrder": "parallel",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+    },
+    {
+      "label": "build",
+      "dependsOn": "project: build (Debug)",
+    }
+  ],
+}
