@@ -6,21 +6,23 @@
 
 using namespace std;
 
-static vector<u8> readFile(const string& filename) {
+static vector<u8> readFile(const string &filename)
+{
 	ifstream file(filename, std::ios::binary | std::ios::ate);
-	if (!file.is_open()) {
+	if (!file.is_open())
+	{
 		throw std::runtime_error("Failed to open file: " + filename);
 	}
 	vector<u8> buffer(file.tellg());
 	file.seekg(0, std::ios::beg);
-	file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+	file.read(reinterpret_cast<char *>(buffer.data()), buffer.size());
 	file.close();
 	return buffer;
 }
 
-vkwiz::Pipeline::Pipeline(Device& device, vkwiz::SwapChain& swapchain, std::string shaderPath, vk::Extent2D extent)
+vkwiz::Pipeline::Pipeline(Device &device, vkwiz::SwapChain &swapchain, std::string shaderPath, vk::Extent2D extent)
 {
-	auto& vkDevice = device.vkDevice();
+	auto &vkDevice = device.vkDevice();
 	auto shaderCode = readFile(shaderPath);
 	vkShaderModule_ = device.createShaderModule(shaderCode);
 
@@ -29,7 +31,7 @@ vkwiz::Pipeline::Pipeline(Device& device, vkwiz::SwapChain& swapchain, std::stri
 	vk::PipelineInputAssemblyStateCreateInfo inputAssembly;
 	inputAssembly.setTopology(vk::PrimitiveTopology::eTriangleList);
 	// Created dynamically
-	//vk::Viewport viewport{
+	// vk::Viewport viewport{
 	//	.x = 0.0f,
 	//	.y = 0.0f,
 	//	.width = static_cast<f32>(extent.width),
@@ -37,14 +39,14 @@ vkwiz::Pipeline::Pipeline(Device& device, vkwiz::SwapChain& swapchain, std::stri
 	//	.minDepth = 0.0f,
 	//	.maxDepth = 1.0f,
 	//};
-	//vk::Rect2D scissor{
+	// vk::Rect2D scissor{
 	//	.offset = vk::Offset2D{ 0, 0 },
 	//	.extent = extent,
 	//};
 	vk::PipelineDynamicStateCreateInfo dynamicState;
 	std::vector dynamicStates = {
-		vk::DynamicState::eViewport,
-		vk::DynamicState::eScissor,
+			vk::DynamicState::eViewport,
+			vk::DynamicState::eScissor,
 	};
 	dynamicState.setDynamicStates(dynamicStates);
 
@@ -69,17 +71,17 @@ vkwiz::Pipeline::Pipeline(Device& device, vkwiz::SwapChain& swapchain, std::stri
 	vk::PipelineColorBlendAttachmentState colorBlendAttachment;
 	colorBlendAttachment.setBlendEnable(vk::False);
 	colorBlendAttachment.setColorWriteMask(
-		vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-		vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
+			vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+			vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
 	vk::PipelineColorBlendStateCreateInfo colorBlending;
 	colorBlending.setLogicOpEnable(vk::False);
 	colorBlending.setLogicOp(vk::LogicOp::eCopy);
-	colorBlending.setAttachments({ colorBlendAttachment });
+	colorBlending.setAttachments({colorBlendAttachment});
 
 	// Required for dynamic rendering
 	vk::PipelineRenderingCreateInfo pipelineRenderingInfo;
 	auto format = swapchain.imageFormat();
-	pipelineRenderingInfo.setColorAttachmentFormats({ format });
+	pipelineRenderingInfo.setColorAttachmentFormats({format});
 
 	// Pipeline layout
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
@@ -87,17 +89,16 @@ vkwiz::Pipeline::Pipeline(Device& device, vkwiz::SwapChain& swapchain, std::stri
 
 	// Final pipeline create info
 	std::vector<vk::PipelineShaderStageCreateInfo> stages = {
-		{
-			.stage = vk::ShaderStageFlagBits::eVertex,
-			.module = *vkShaderModule_,
-			.pName = "vertMain",
-		},
-		{
-			.stage = vk::ShaderStageFlagBits::eFragment,
-			.module = *vkShaderModule_,
-			.pName = "fragMain",
-		}
-	};
+			{
+					.stage = vk::ShaderStageFlagBits::eVertex,
+					.module = *vkShaderModule_,
+					.pName = "vertMain",
+			},
+			{
+					.stage = vk::ShaderStageFlagBits::eFragment,
+					.module = *vkShaderModule_,
+					.pName = "fragMain",
+			}};
 	vk::GraphicsPipelineCreateInfo pipelineInfo;
 	pipelineInfo.setPNext(&pipelineRenderingInfo);
 	pipelineInfo.setStages(stages);

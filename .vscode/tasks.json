@@ -25,53 +25,53 @@
   ],
   "tasks": [
     {
-      "label": "g++: build (Release)",
-      "icon": {
-        "color": "terminal.ansiGreen",
-        "id": "tools"
-      },
-      "detail": "Compile c++ code for release",
-      "type": "shell",
-      "command": "g++",
-      "args": [
-        "src/**.cpp",
-        "-fdiagnostics-color=always",
-        "-std=c++26",
-        "-I", "include/",
-        "-L", "lib/",
-        "-lvulkan-1",
-        "-lglfw3",
-        "-lgdi32",
-        "-o", "bin/release/program.exe"
-      ],
-      "problemMatcher": "$gcc",
-      "group": "build",
-    },
-    {
-      "label": "g++: build (Debug)",
+      "label": "CMake Build (Debug)",
       "icon": {
         "color": "terminal.ansiRed",
         "id": "tools"
       },
-      "detail": "Compile c++ code for debugging",
+      "detail": "Run CMake build for debugging",
       "type": "shell",
-      "command": "./build.sh",
-      "problemMatcher": "$gcc",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "build",
+      ],
+      "problemMatcher": "$msCompile",
       "group": "build"
     },
 
     {
-      "label": "glslc: compile",
-      "detail": "Compile all GLSL shaders",
+      "label": "CMake Build (Release)",
+      "icon": {
+        "color": "terminal.ansiGreen",
+        "id": "tools"
+      },
+      "detail": "Run CMake build for release",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "build",
+        "--config",
+        "Release"
+      ],
+      "problemMatcher": "$msCompile",
+      "group": "build"
+    },
+
+    {
+      "label": "Build Slang Shaders",
+      "detail": "Compile all slang shaders",
       "icon": {
         "color": "terminal.ansiMagenta",
         "id": "paintcan"
       },
       "type": "shell",
       "group": "build",
-      "command": "./VkWizardVS/slangc.sh",
+      "command": "./slangc.sh",
       "problemMatcher": {
-        "owner": "glslc",
+        "owner": "slangc",
         "fileLocation": ["relative", "${workspaceFolder}"],
         "pattern": {
           "regexp": "(.+\\.(frag|vert)):(\\d+): (error|warning): (.+)",
@@ -84,15 +84,15 @@
     },
 
     {
-      "label": "project: build (Release)",
+      "label": "Build All (Release)",
       "detail": "Build all (C++ and GLSL) for release",
       "icon": {
         "id": "rocket",
         "color": "terminal.ansiGreen",
       },
       "dependsOn": [
-        "glslc: compile",
-        "g++: build (Release)"
+        "Build Slang Shaders",
+        "Build CMake (Debug)"
       ],
       "dependsOrder": "parallel",
       "group": "build",
@@ -106,7 +106,7 @@
         "color": "terminal.ansiRed",
       },
       "dependsOn": [
-        "glslc: compile",
+        "slangc: compile",
         "g++: build (Debug)"
       ],
       "dependsOrder": "parallel",
@@ -115,9 +115,11 @@
         "isDefault": true
       },
     },
+
+    // For my custom build keybinding
     {
       "label": "build",
-      "dependsOn": "project: build (Debug)",
+      "dependsOn": "Build All (Debug)",
     }
   ],
 }

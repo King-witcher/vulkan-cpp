@@ -7,11 +7,11 @@
 using namespace vkwiz;
 
 std::array REQUIRED_EXTENSIONS = {
-	vk::KHRShaderDrawParametersExtensionName,
-	vk::KHRCreateRenderpass2ExtensionName,
-	vk::KHRSynchronization2ExtensionName,
-	vk::KHRSwapchainExtensionName,
-	vk::KHRSpirv14ExtensionName,
+		vk::KHRShaderDrawParametersExtensionName,
+		vk::KHRCreateRenderpass2ExtensionName,
+		vk::KHRSynchronization2ExtensionName,
+		vk::KHRSwapchainExtensionName,
+		vk::KHRSpirv14ExtensionName,
 };
 
 bool isDeviceSuitable(vk::raii::PhysicalDevice device)
@@ -34,51 +34,52 @@ bool isDeviceSuitable(vk::raii::PhysicalDevice device)
 	return true;
 }
 
-vk::raii::PhysicalDevice pickPhysicalDevice(vk::raii::Instance& instance)
+vk::raii::PhysicalDevice pickPhysicalDevice(vk::raii::Instance &instance)
 {
 	auto devices = instance.enumeratePhysicalDevices();
 	if (devices.size() == 0)
 		throw std::runtime_error("failed to find GPUs with Vulkan support!");
 
 	// TODO: Pick the most suitable device
-	for (const auto& device : devices)
+	for (const auto &device : devices)
 	{
 		if (isDeviceSuitable(device))
 			return device;
 	}
+	throw std::runtime_error("failed to find a suitable GPU!");
 }
 
 u32 findQueueFamilies(vk::raii::PhysicalDevice device)
 {
 	auto queueFamilies = device.getQueueFamilyProperties();
 	auto familyProperty = std::find_if(
-		queueFamilies.begin(),
-		queueFamilies.end(),
-		[](vk::QueueFamilyProperties const& properties) {
-			return properties.queueFlags & vk::QueueFlagBits::eGraphics;
-		}
-	);
+			queueFamilies.begin(),
+			queueFamilies.end(),
+			[](vk::QueueFamilyProperties const &properties)
+			{
+				return properties.queueFlags & vk::QueueFlagBits::eGraphics;
+			});
 	return static_cast<u32>(std::distance(queueFamilies.begin(), familyProperty));
 }
 
 vk::raii::Device createLogicalDevice(vk::raii::PhysicalDevice physicalDevice, u32 graphicsIndex)
 {
-	std::array queuePriorities = { 0.5f };
-	std::array queueCreateInfos = { vk::DeviceQueueCreateInfo() };
+	std::array queuePriorities = {0.5f};
+	std::array queueCreateInfos = {vk::DeviceQueueCreateInfo()};
 	queueCreateInfos[0].setQueuePriorities(queuePriorities);
 
 	vk::StructureChain<
-		vk::PhysicalDeviceFeatures2,
-		vk::PhysicalDeviceVulkan13Features,
-		vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT
-	> featureChain = {
-		{},                               // vk::PhysicalDeviceFeatures2 (empty for now)
-		{
-			.synchronization2 = true,
-			.dynamicRendering = true,
-		},      // Enable dynamic rendering from Vulkan 1.3
-		{.extendedDynamicState = true }   // Enable extended dynamic state from the extension
-	};
+			vk::PhysicalDeviceFeatures2,
+			vk::PhysicalDeviceVulkan13Features,
+			vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>
+			featureChain = {
+					{}, // vk::PhysicalDeviceFeatures2 (empty for now)
+					{
+							.synchronization2 = true,
+							.dynamicRendering = true,
+					},														 // Enable dynamic rendering from Vulkan 1.3
+					{.extendedDynamicState = true} // Enable extended dynamic state from the extension
+			};
 
 	vk::DeviceCreateInfo deviceCreateInfo{};
 	deviceCreateInfo.setPNext(&featureChain.get());
@@ -88,7 +89,7 @@ vk::raii::Device createLogicalDevice(vk::raii::PhysicalDevice physicalDevice, u3
 	return vk::raii::Device(physicalDevice, deviceCreateInfo);
 }
 
-vkwiz::Device::Device(vk::raii::Instance& instance, vk::raii::SurfaceKHR& surface) : vkSurface(surface)
+vkwiz::Device::Device(vk::raii::Instance &instance, vk::raii::SurfaceKHR &surface) : vkSurface(surface)
 {
 	vkPhysicalDevice_ = pickPhysicalDevice(instance);
 	graphicsIndex_ = findQueueFamilies(vkPhysicalDevice_);
@@ -102,24 +103,23 @@ vkwiz::Device::Device(vk::raii::Instance& instance, vk::raii::SurfaceKHR& surfac
 	vkPresentQueue_ = vkGraphicsQueue_;
 
 	vkCommandPool_ = vk::raii::CommandPool(
-		vkDevice_,
-		vk::CommandPoolCreateInfo{
-			.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-			.queueFamilyIndex = graphicsIndex_,
-		}
-		);
+			vkDevice_,
+			vk::CommandPoolCreateInfo{
+					.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+					.queueFamilyIndex = graphicsIndex_,
+			});
 }
 
-SwapchainSurfaceSupportDetails vkwiz::Device::querySwapchainSupportDetails(vk::raii::SurfaceKHR& surface)
+SwapchainSurfaceSupportDetails vkwiz::Device::querySwapchainSupportDetails(vk::raii::SurfaceKHR &surface)
 {
 	auto capabilities = vkPhysicalDevice_.getSurfaceCapabilitiesKHR(surface);
 	auto formats = vkPhysicalDevice_.getSurfaceFormatsKHR(surface);
 	auto presentModes = vkPhysicalDevice_.getSurfacePresentModesKHR(surface);
 
 	return SwapchainSurfaceSupportDetails{
-		.capabilities = capabilities,
-		.formats = formats,
-		.presentModes = presentModes,
+			.capabilities = capabilities,
+			.formats = formats,
+			.presentModes = presentModes,
 	};
 }
 
@@ -128,12 +128,12 @@ u32 vkwiz::Device::graphicsIndex()
 	return graphicsIndex_;
 }
 
-void vkwiz::Device::resetFence(vk::raii::Fence& fence)
+void vkwiz::Device::resetFence(vk::raii::Fence &fence)
 {
 	vkDevice_.resetFences(*fence);
 }
 
-vk::Result vkwiz::Device::waitForFence(vk::raii::Fence& fence)
+vk::Result vkwiz::Device::waitForFence(vk::raii::Fence &fence)
 {
 	return vkDevice_.waitForFences(*fence, vk::True, UINT64_MAX);
 }
@@ -143,14 +143,17 @@ void vkwiz::Device::submitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence)
 	vkGraphicsQueue_.submit(submitInfo, fence);
 }
 
-void vkwiz::Device::present(vk::PresentInfoKHR& presentInfo)
+void vkwiz::Device::present(vk::PresentInfoKHR &presentInfo)
 {
-	try {
-		if (vkPresentQueue_.presentKHR(presentInfo) != vk::Result::eSuccess) {
+	try
+	{
+		if (vkPresentQueue_.presentKHR(presentInfo) != vk::Result::eSuccess)
+		{
 			throw std::runtime_error("Failed to present swapchain image.");
 		}
 	}
-	catch (vk::SystemError& err) {
+	catch (vk::SystemError &err)
+	{
 		throw std::runtime_error("Failed to present swapchain image.");
 	}
 }
@@ -158,9 +161,9 @@ void vkwiz::Device::present(vk::PresentInfoKHR& presentInfo)
 std::vector<vk::raii::CommandBuffer> vkwiz::Device::allocateCommandBuffers(u32 count) const
 {
 	vk::CommandBufferAllocateInfo allocateInfo{
-		.commandPool = vkCommandPool_,
-		.level = vk::CommandBufferLevel::ePrimary,
-		.commandBufferCount = count,
+			.commandPool = vkCommandPool_,
+			.level = vk::CommandBufferLevel::ePrimary,
+			.commandBufferCount = count,
 	};
 	return vkDevice_.allocateCommandBuffers(allocateInfo);
 }
@@ -173,15 +176,15 @@ vk::raii::Semaphore vkwiz::Device::createSemaphore() const
 vk::raii::Fence vkwiz::Device::createFence(bool signaled) const
 {
 	return vkDevice_.createFence({
-		.flags = signaled ? vk::FenceCreateFlagBits::eSignaled : vk::FenceCreateFlags{},
-		});
+			.flags = signaled ? vk::FenceCreateFlagBits::eSignaled : vk::FenceCreateFlags{},
+	});
 }
 
 vk::raii::ShaderModule vkwiz::Device::createShaderModule(const std::vector<u8> code) const
 {
 	vk::ShaderModuleCreateInfo createInfo{
-		.codeSize = code.size(),
-		.pCode = reinterpret_cast<const u32*>(code.data()),
+			.codeSize = code.size(),
+			.pCode = reinterpret_cast<const u32 *>(code.data()),
 	};
 	return vkDevice_.createShaderModule(createInfo);
 }
