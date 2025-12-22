@@ -15,19 +15,15 @@ link_directories(
     ${CMAKE_SOURCE_DIR}/external/SDL3/lib
 )
 
-# Arquivos fonte
 file(GLOB_RECURSE SOURCES CMAKE_CONFIGURE_DEPENDS "src/sources/*.cpp")
 
-# Executável
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-# Linkagem das bibliotecas
 target_link_libraries(${PROJECT_NAME}
     vulkan-1
     SDL3
 )
 
-# Configurações específicas do Windows
 if(WIN32)
     target_link_libraries(${PROJECT_NAME} gdi32)
 endif()
