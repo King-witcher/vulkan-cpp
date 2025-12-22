@@ -1,5 +1,7 @@
 #include "SwapChain.h"
 #include "RustTypes.h"
+#include "Panic.h"
+#include <iostream>
 using namespace std;
 
 vk::SurfaceFormatKHR chooseSwapSurfaceFormat(vector<vk::SurfaceFormatKHR> formats)
@@ -27,12 +29,12 @@ vk::PresentModeKHR chooseSwapPresentMode(std::vector<vk::PresentModeKHR> present
 vk::Extent2D chooseSwapExtent(vk::SurfaceCapabilitiesKHR capabilities)
 {
 	if (capabilities.currentExtent.width == std::numeric_limits<u32>::max())
-		throw new runtime_error("Dynamic surface extent is not supported by this engine.");
+		panic("dynamic surface extent is not supported by this engine.");
 
 	return capabilities.currentExtent;
 }
 
-vkwiz::SwapChain::SwapChain(Device &device, vk::raii::SurfaceKHR &surface) : device_(device)
+vkwiz::SwapChain::SwapChain(Device &device, vk::raii::SurfaceKHR &surface, vk::SwapchainKHR oldSwapChain) : device_(device)
 {
 	auto swapChainSupport = device.querySwapchainSupportDetails(surface);
 	auto format = chooseSwapSurfaceFormat(swapChainSupport.formats);
@@ -43,6 +45,7 @@ vkwiz::SwapChain::SwapChain(Device &device, vk::raii::SurfaceKHR &surface) : dev
 	u32 minImageCount = swapChainSupport.capabilities.minImageCount + 1;
 
 	vk::SwapchainCreateInfoKHR swapChainCreateInfo;
+	swapChainCreateInfo.setOldSwapchain(oldSwapChain);
 	swapChainCreateInfo.setSurface(*surface);
 	swapChainCreateInfo.setMinImageCount(minImageCount);
 	swapChainCreateInfo.setImageFormat(vkImageFormat_);
@@ -58,25 +61,37 @@ vkwiz::SwapChain::SwapChain(Device &device, vk::raii::SurfaceKHR &surface) : dev
 	// swapChainCreateInfo.setOldSwapchain(VK_NULL_HANDLE);
 
 	auto &vkDevice = device.vkDevice();
-	vkSwapChain_ = vkDevice.createSwapchainKHR(swapChainCreateInfo);
+	auto result = vkDevice.createSwapchainKHR(swapChainCreateInfo);
+	vkSwapChain_ = std::move(*result);
 
-	vkImages_ = vkSwapChain_.getImages();
+	vkImages_ = std::move(*vkSwapChain_.getImages());
 	vkImageViews_ = createImageViews(vkDevice);
 }
 
-std::tuple<vk::Image, vk::ImageView, u32> vkwiz::SwapChain::acquireImage(const vk::Semaphore semaphore, const vk::Fence fence)
+std::tuple<bool, vk::Image, vk::ImageView, u32> vkwiz::SwapChain::acquireImage(const vk::Semaphore semaphore, const vk::Fence fence)
 {
 	auto [result, index] = vkSwapChain_.acquireNextImage(UINT64_MAX, semaphore, fence);
-	if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
+	switch (result)
 	{
-		throw runtime_error("Failed to acquire swap chain image!");
+	case vk::Result::eSuccess:
+		break;
+	case vk::Result::eErrorOutOfDateKHR:
+		std::cerr << "swap chain was out of date when acquiring image." << std::endl;
+		return {false, {}, {}, static_cast<u32>(0)};
+	case vk::Result::eSuboptimalKHR:
+		std::cerr << "swap chain was suboptimal when acquiring image." << std::endl;
+		return {false, {}, {}, static_cast<u32>(0)};
+	default:
+		panic("failed to acquire swap chain image.");
 	}
-	return {vkImages_[index], vkImageViews_[index], index};
+
+	return {true, vkImages_[index], vkImageViews_[index], index};
 }
 
 std::vector<vk::raii::ImageView> vkwiz::SwapChain::createImageViews(vk::raii::Device &vkDevice)
 {
 	std::vector<vk::raii::ImageView> imageViews;
+
 	vk::ImageViewCreateInfo createInfo;
 	createInfo.setViewType(vk::ImageViewType::e2D);
 	createInfo.setFormat(vkImageFormat_);
@@ -93,7 +108,8 @@ std::vector<vk::raii::ImageView> vkwiz::SwapChain::createImageViews(vk::raii::De
 	for (auto image : vkImages_)
 	{
 		createInfo.setImage(image);
-		imageViews.emplace_back(vkDevice, createInfo);
+		auto view = std::move(*vkDevice.createImageView(createInfo));
+		imageViews.push_back(std::move(view));
 	}
 
 	return imageViews;

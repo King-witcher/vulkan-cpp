@@ -85,7 +85,7 @@ vkwiz::Pipeline::Pipeline(Device &device, vkwiz::SwapChain &swapchain, std::stri
 
 	// Pipeline layout
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
-	vkPipelineLayout_ = vkDevice.createPipelineLayout(pipelineLayoutInfo);
+	vkPipelineLayout_ = std::move(*vkDevice.createPipelineLayout(pipelineLayoutInfo));
 
 	// Final pipeline create info
 	std::vector<vk::PipelineShaderStageCreateInfo> stages = {
@@ -112,5 +112,5 @@ vkwiz::Pipeline::Pipeline(Device &device, vkwiz::SwapChain &swapchain, std::stri
 	pipelineInfo.setLayout(*vkPipelineLayout_);
 
 	// Sem cache por enquanto
-	vkPipeline_ = vkDevice.createGraphicsPipeline(nullptr, pipelineInfo);
+	vkPipeline_ = std::move(*vkDevice.createGraphicsPipeline(nullptr, pipelineInfo));
 }

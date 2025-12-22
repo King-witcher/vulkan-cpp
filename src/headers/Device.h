@@ -3,8 +3,10 @@
 #include "Vulkan.h"
 #include "RustTypes.h"
 
-namespace vkwiz {
-	struct SwapchainSurfaceSupportDetails {
+namespace vkwiz
+{
+	struct SwapchainSurfaceSupportDetails
+	{
 		vk::SurfaceCapabilitiesKHR capabilities;
 		std::vector<vk::SurfaceFormatKHR> formats;
 		std::vector<vk::PresentModeKHR> presentModes;
@@ -13,24 +15,23 @@ namespace vkwiz {
 	class Device
 	{
 	public:
-		Device(vk::raii::Instance& instance, vk::raii::SurfaceKHR& surface);
+		Device(vk::raii::Instance &instance, vk::raii::SurfaceKHR &surface);
 
-		SwapchainSurfaceSupportDetails querySwapchainSupportDetails(vk::raii::SurfaceKHR& surface);
-		void resetFence(vk::raii::Fence& fence);
-		vk::Result waitForFence(vk::raii::Fence& fence);
+		SwapchainSurfaceSupportDetails querySwapchainSupportDetails(vk::raii::SurfaceKHR &surface);
+		void resetFence(vk::raii::Fence &fence);
+		vk::Result waitForFence(vk::raii::Fence &fence);
 		void submitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence);
-		void present(vk::PresentInfoKHR& presentInfo);
+		bool present(vk::PresentInfoKHR &presentInfo);
 		std::vector<vk::raii::CommandBuffer> allocateCommandBuffers(u32 count) const;
 		vk::raii::Semaphore createSemaphore() const;
 		vk::raii::Fence createFence(bool signaled = true) const;
 		vk::raii::ShaderModule createShaderModule(const std::vector<u8> code) const;
 
 		u32 graphicsIndex();
-		vk::raii::Device& vkDevice() { return vkDevice_; }
-		vk::raii::CommandPool& vkCommandPool() { return vkCommandPool_; }
+		vk::raii::Device &vkDevice() { return vkDevice_; }
+		vk::raii::CommandPool &vkCommandPool() { return vkCommandPool_; }
 
 	private:
-		vk::raii::SurfaceKHR& vkSurface;
 		vk::raii::PhysicalDevice vkPhysicalDevice_ = nullptr;
 		vk::raii::Device vkDevice_ = nullptr;
 		vk::raii::Queue vkGraphicsQueue_ = nullptr;
@@ -39,4 +40,3 @@ namespace vkwiz {
 		u32 graphicsIndex_ = -1;
 	};
 }
-
