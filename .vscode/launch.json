@@ -2,22 +2,22 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Run (Release)",
-      "type": "cppvsdbg",
-      "request": "launch",
-      "program": "${workspaceFolder}/build/Release/VkWizardVS.exe",
-      "cwd": "${workspaceFolder}",
-      "externalConsole": true,
-      "preLaunchTask": "project: build (Release)"
-    },
-    {
       "name": "Run (Debug)",
       "type": "cppvsdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/Debug/VkWizardVS.exe",
       "cwd": "${workspaceFolder}",
       "externalConsole": true,
-      "preLaunchTask": "project: build (Debug)"
+      "preLaunchTask": "Build All (Debug)"
+    },
+    {
+      "name": "Run (Release)",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/Release/VkWizardVS.exe",
+      "cwd": "${workspaceFolder}",
+      "externalConsole": true,
+      "preLaunchTask": "Build All (Release)"
     },
   ]
 }

@@ -1,33 +1,10 @@
 {
   "version": "2.0.0",
-  "inputs": [
-    {
-      "id": "File",
-      "description": "Path to a file",
-      "type": "promptString",
-    },
-    {
-      "id": "Link type",
-      "description": "Type of link to create",
-      "type": "pickString",
-      "default": "lib",
-      "options": [
-        {
-          "label": "Binaries",
-          "value": "lib"
-        },
-        {
-          "label": "Headers",
-          "value": "include"
-        }
-      ]
-    },
-  ],
   "tasks": [
     {
       "label": "CMake Build (Debug)",
       "icon": {
-        "color": "terminal.ansiRed",
+        "color": "terminal.ansiGreen",
         "id": "tools"
       },
       "detail": "Run CMake build for debugging",
@@ -44,7 +21,7 @@
     {
       "label": "CMake Build (Release)",
       "icon": {
-        "color": "terminal.ansiGreen",
+        "color": "terminal.ansiBlue",
         "id": "tools"
       },
       "detail": "Run CMake build for release",
@@ -62,7 +39,7 @@
 
     {
       "label": "Build Slang Shaders",
-      "detail": "Compile all slang shaders",
+      "detail": "Compile all Slang shaders",
       "icon": {
         "color": "terminal.ansiMagenta",
         "id": "paintcan"
@@ -84,30 +61,15 @@
     },
 
     {
-      "label": "Build All (Release)",
-      "detail": "Build all (C++ and GLSL) for release",
+      "label": "Build All (Debug)",
+      "detail": "Build everything for debuggin",
       "icon": {
         "id": "rocket",
         "color": "terminal.ansiGreen",
       },
       "dependsOn": [
         "Build Slang Shaders",
-        "Build CMake (Debug)"
-      ],
-      "dependsOrder": "parallel",
-      "group": "build",
-    },
-
-    {
-      "label": "project: build (Debug)",
-      "detail": "Build all (C++ and GLSL) for debugging",
-      "icon": {
-        "id": "rocket",
-        "color": "terminal.ansiRed",
-      },
-      "dependsOn": [
-        "slangc: compile",
-        "g++: build (Debug)"
+        "CMake Build (Debug)"
       ],
       "dependsOrder": "parallel",
       "group": {
@@ -116,10 +78,29 @@
       },
     },
 
+    {
+      "label": "Build All (Release)",
+      "detail": "Build everything for release",
+      "icon": {
+        "id": "rocket",
+        "color": "terminal.ansiBlue",
+      },
+      "dependsOn": [
+        "Build Slang Shaders",
+        "CMake Build (Release)"
+      ],
+      "dependsOrder": "parallel",
+      "group": "build",
+    },
+
     // For my custom build keybinding
     {
       "label": "build",
       "dependsOn": "Build All (Debug)",
+      "detail": "For my custom keyboard shortcut",
+      "icon": {
+        "id": "keyboard"
+      }
     }
   ],
 }
