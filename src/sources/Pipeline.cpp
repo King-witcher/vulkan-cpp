@@ -1,5 +1,6 @@
 #include "Pipeline.h"
 #include "RustTypes.h"
+#include "Model.h"
 
 #include <memory.h>
 #include <fstream>
@@ -27,8 +28,13 @@ vkwiz::Pipeline::Pipeline(Device &device, vkwiz::SwapChain &swapchain, std::stri
 	vkShaderModule_ = device.createShaderModule(shaderCode);
 
 	// Fixed functions
-	vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
-	vk::PipelineInputAssemblyStateCreateInfo inputAssembly;
+	auto vertexInputInfo = vk::PipelineVertexInputStateCreateInfo{};
+	auto bindingDescription = Model::Vertex::bindingDescription();
+	auto attributeDescriptions = Model::Vertex::attributeDescription();
+	vertexInputInfo.setVertexBindingDescriptions({bindingDescription});
+	vertexInputInfo.setVertexAttributeDescriptions(attributeDescriptions);
+
+	vk::PipelineInputAssemblyStateCreateInfo inputAssembly{};
 	inputAssembly.setTopology(vk::PrimitiveTopology::eTriangleList);
 	// Created dynamically
 	// vk::Viewport viewport{
@@ -43,18 +49,18 @@ vkwiz::Pipeline::Pipeline(Device &device, vkwiz::SwapChain &swapchain, std::stri
 	//	.offset = vk::Offset2D{ 0, 0 },
 	//	.extent = extent,
 	//};
-	vk::PipelineDynamicStateCreateInfo dynamicState;
+	vk::PipelineDynamicStateCreateInfo dynamicState{};
 	std::vector dynamicStates = {
 			vk::DynamicState::eViewport,
 			vk::DynamicState::eScissor,
 	};
 	dynamicState.setDynamicStates(dynamicStates);
 
-	vk::PipelineViewportStateCreateInfo viewportState;
+	vk::PipelineViewportStateCreateInfo viewportState{};
 	viewportState.setViewportCount(1);
 	viewportState.setScissorCount(1);
 
-	vk::PipelineRasterizationStateCreateInfo rasterizer;
+	vk::PipelineRasterizationStateCreateInfo rasterizer{};
 	rasterizer.setDepthClampEnable(vk::False);
 	rasterizer.setRasterizerDiscardEnable(vk::False);
 	rasterizer.setPolygonMode(vk::PolygonMode::eFill);
@@ -64,27 +70,27 @@ vkwiz::Pipeline::Pipeline(Device &device, vkwiz::SwapChain &swapchain, std::stri
 	rasterizer.setDepthBiasSlopeFactor(1.0f);
 	rasterizer.setLineWidth(1.0f);
 
-	vk::PipelineMultisampleStateCreateInfo multisampling;
+	vk::PipelineMultisampleStateCreateInfo multisampling{};
 	multisampling.setRasterizationSamples(vk::SampleCountFlagBits::e1);
 	multisampling.setSampleShadingEnable(vk::False);
 
-	vk::PipelineColorBlendAttachmentState colorBlendAttachment;
+	vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
 	colorBlendAttachment.setBlendEnable(vk::False);
 	colorBlendAttachment.setColorWriteMask(
 			vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
 			vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
-	vk::PipelineColorBlendStateCreateInfo colorBlending;
+	vk::PipelineColorBlendStateCreateInfo colorBlending{};
 	colorBlending.setLogicOpEnable(vk::False);
 	colorBlending.setLogicOp(vk::LogicOp::eCopy);
 	colorBlending.setAttachments({colorBlendAttachment});
 
 	// Required for dynamic rendering
-	vk::PipelineRenderingCreateInfo pipelineRenderingInfo;
+	vk::PipelineRenderingCreateInfo pipelineRenderingInfo{};
 	auto format = swapchain.imageFormat();
 	pipelineRenderingInfo.setColorAttachmentFormats({format});
 
 	// Pipeline layout
-	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
+	vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
 	vkPipelineLayout_ = std::move(*vkDevice.createPipelineLayout(pipelineLayoutInfo));
 
 	// Final pipeline create info
@@ -99,7 +105,7 @@ vkwiz::Pipeline::Pipeline(Device &device, vkwiz::SwapChain &swapchain, std::stri
 					.module = *vkShaderModule_,
 					.pName = "fragMain",
 			}};
-	vk::GraphicsPipelineCreateInfo pipelineInfo;
+	vk::GraphicsPipelineCreateInfo pipelineInfo{};
 	pipelineInfo.setPNext(&pipelineRenderingInfo);
 	pipelineInfo.setStages(stages);
 	pipelineInfo.setPVertexInputState(&vertexInputInfo);

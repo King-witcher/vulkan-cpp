@@ -26,6 +26,7 @@ namespace vkwiz
 		vk::raii::Semaphore createSemaphore() const;
 		vk::raii::Fence createFence(bool signaled = true) const;
 		vk::raii::ShaderModule createShaderModule(const std::vector<u8> code) const;
+		vk::raii::Buffer createBuffer(vk::BufferUsageFlags usage, usize size) const;
 
 		u32 graphicsIndex();
 		vk::raii::Device &vkDevice() { return vkDevice_; }

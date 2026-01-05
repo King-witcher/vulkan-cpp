@@ -16,7 +16,7 @@ std::array REQUIRED_EXTENSIONS = {
 		vk::KHRSpirv14ExtensionName,
 };
 
-bool isDeviceSuitable(vk::raii::PhysicalDevice device)
+bool isDeviceSuitable(vk::raii::PhysicalDevice &device)
 {
 	auto properties = device.getProperties();
 	auto features = device.getFeatures();
@@ -36,6 +36,39 @@ bool isDeviceSuitable(vk::raii::PhysicalDevice device)
 	return true;
 }
 
+void showDevice(vk::raii::PhysicalDevice &device)
+{
+	auto properties = device.getProperties();
+	std::cout << "Found Vulkan GPU: " << properties.deviceName << std::endl;
+	std::cout << "Driver Version: "
+						<< VK_VERSION_MAJOR(properties.driverVersion) << "."
+						<< VK_VERSION_MINOR(properties.driverVersion) << "."
+						<< VK_VERSION_PATCH(properties.driverVersion) << std::endl;
+	std::cout << "Vulkan API Version: "
+						<< VK_VERSION_MAJOR(properties.apiVersion) << "."
+						<< VK_VERSION_MINOR(properties.apiVersion) << "."
+						<< VK_VERSION_PATCH(properties.apiVersion) << std::endl;
+	std::cout << "Device Type: ";
+	switch (properties.deviceType)
+	{
+	case vk::PhysicalDeviceType::eIntegratedGpu:
+		std::cout << "Integrated GPU" << std::endl;
+		break;
+	case vk::PhysicalDeviceType::eDiscreteGpu:
+		std::cout << "Discrete GPU" << std::endl;
+		break;
+	case vk::PhysicalDeviceType::eVirtualGpu:
+		std::cout << "Virtual GPU" << std::endl;
+		break;
+	case vk::PhysicalDeviceType::eCpu:
+		std::cout << "CPU" << std::endl;
+		break;
+	default:
+		std::cout << "Other" << std::endl;
+		break;
+	}
+}
+
 vk::raii::PhysicalDevice pickPhysicalDevice(vk::raii::Instance &instance)
 {
 	auto [result, devices] = instance.enumeratePhysicalDevices();
@@ -45,8 +78,9 @@ vk::raii::PhysicalDevice pickPhysicalDevice(vk::raii::Instance &instance)
 		throw std::runtime_error("no vulkan compatible GPU found");
 
 	// TODO: Pick the most suitable device
-	for (const auto &device : devices)
+	for (auto device : devices)
 	{
+		showDevice(device);
 		if (isDeviceSuitable(device))
 			return device;
 	}
@@ -149,6 +183,7 @@ void vkwiz::Device::submitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence)
 bool vkwiz::Device::present(vk::PresentInfoKHR &presentInfo)
 {
 	auto result = vkPresentQueue_.presentKHR(presentInfo);
+
 	switch (result)
 	{
 	case vk::Result::eSuccess:
@@ -193,4 +228,14 @@ vk::raii::ShaderModule vkwiz::Device::createShaderModule(const std::vector<u8> c
 			.pCode = reinterpret_cast<const u32 *>(code.data()),
 	};
 	return std::move(*vkDevice_.createShaderModule(createInfo));
+}
+
+vk::raii::Buffer vkwiz::Device::createBuffer(vk::BufferUsageFlags usage, usize size) const
+{
+	vk::BufferCreateInfo bufferInfo{
+			.size = size,
+			.usage = usage,
+			.sharingMode = vk::SharingMode::eExclusive,
+	};
+	return std::move(*vkDevice_.createBuffer(bufferInfo));
 }
