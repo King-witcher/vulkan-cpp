@@ -170,7 +170,6 @@ void vkwiz::Engine::recordCommandBuffer(vk::raii::CommandBuffer &commandBuffer, 
 
 void vkwiz::Engine::recreateSwapChain()
 {
-	// Super readable
 	for (; input::minimized(); input::update())
 		;
 
