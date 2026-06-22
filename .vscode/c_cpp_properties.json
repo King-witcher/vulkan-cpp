@@ -8,9 +8,10 @@
             //     "-L", "${workspaceFolder}/lib"
             // ],
             "includePath": [
-                "${workspaceFolder}/external/SDL3/include",
-                "${workspaceFolder}/external/vulkan/include",
-                "${workspaceFolder}/src/headers"
+                "${workspaceFolder}/modules/core/include",
+                "${workspaceFolder}/modules/engine/include",
+                "${env:VULKAN_SDK}/Include",
+                "${workspaceFolder}/build/_deps/sdl3-src/include"
             ],
             "defines": [
                 "_DEBUG",
