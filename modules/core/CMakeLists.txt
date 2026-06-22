@@ -9,7 +9,7 @@ add_library(VkWizard::core ALIAS core)   # nome com namespace = padrão moderno 
 # Expõe a pasta include/ a quem linkar o core (INTERFACE = só para consumidores).
 # Mantém os #include "RustTypes.h" / "Panic.h" existentes resolvendo, sem alterar o código.
 target_include_directories(core INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
 # O padrão C++26 vem da configuração global no CMakeLists raiz (CMAKE_CXX_STANDARD),
 # aplicada aos alvos que de fato compilam (engine e game).

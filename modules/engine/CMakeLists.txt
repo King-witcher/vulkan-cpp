@@ -5,7 +5,7 @@
 
 # Coleta todos os .cpp de src/. CONFIGURE_DEPENDS faz o CMake reconfigurar
 # automaticamente quando você adiciona/remove um arquivo de origem.
-file(GLOB ENGINE_SRC CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+file(GLOB ENGINE_SRC CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
 add_library(engine STATIC ${ENGINE_SRC})
 add_library(VkWizard::engine ALIAS engine)
@@ -14,7 +14,7 @@ add_library(VkWizard::engine ALIAS engine)
 # próprio engine E para quem o consome (o game). Preserva os #include "Engine.h"
 # etc. resolvendo, sem precisar mexer no código.
 target_include_directories(engine PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
 # (O padrão C++26 vem de CMAKE_CXX_STANDARD, definido no CMakeLists raiz.)
 
