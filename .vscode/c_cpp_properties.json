@@ -8,8 +8,8 @@
             //     "-L", "${workspaceFolder}/lib"
             // ],
             "includePath": [
-                "${workspaceFolder}/modules/core/include",
-                "${workspaceFolder}/modules/engine/include",
+                "${workspaceFolder}/modules/core",
+                "${workspaceFolder}/modules/engine",
                 "${env:VULKAN_SDK}/Include",
                 "${workspaceFolder}/build/_deps/sdl3-src/include"
             ],
