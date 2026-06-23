@@ -224,3 +224,17 @@ u32 vkwiz::Device::findMemoryType(u32 supportedTypes, vk::MemoryPropertyFlags pr
 
 	throw std::runtime_error("failed to find suitable memory type");
 }
+
+vk::raii::DeviceMemory vkwiz::Device::allocateMemory(vk::MemoryRequirements2 requirements)
+{
+	vk::MemoryAllocateInfo allocInfo;
+	allocInfo.setAllocationSize(requirements.memoryRequirements.size);
+	auto memoryType = findMemoryType(
+			requirements.memoryRequirements.memoryTypeBits,
+			vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+	allocInfo.setMemoryTypeIndex(memoryType);
+	auto allocResult = vkDevice_.allocateMemory(allocInfo);
+	if (!allocResult.has_value())
+		panic("failed to allocate buffer memory");
+	return std::move(*allocResult);
+}
