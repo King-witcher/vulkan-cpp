@@ -209,6 +209,8 @@ std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> vkwiz::Device::alloc(usize 
 
 	// Allocate memory
 	auto requirements = buffer.getMemoryRequirements();
+	// Estamos usando HostCoherent para não precisar dar vkDevice_.mapFlushedMemoryRanges() depois de escrever na memória mapeada e vkDevice_.invalidateMappedMemoryRanges antes de ler da memória mapeada.
+	// Mas isso tem desempenho pior e pode ser mudado depois.
 	auto memType = findMemoryType(requirements.memoryTypeBits,
 																vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 	vk::MemoryAllocateInfo memInfo;
@@ -218,7 +220,12 @@ std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> vkwiz::Device::alloc(usize 
 	if (!memResult.has_value())
 		panic("failed to alloc memory for buffer");
 	auto memory = std::move(*memResult);
-	return std::make_tuple(buffer, memory);
+
+	// Vincula a memória alocada ao buffer. Sem isso, o buffer não tem
+	// armazenamento e qualquer uso dele dispara VUID-...-pBuffers-00628.
+	buffer.bindMemory(*memory, 0);
+
+	return std::make_tuple(std::move(buffer), std::move(memory));
 }
 
 // Existem heaps diferentes como VRAM e espaço de swap na RAM pra quando a VRAM acaba. São heaps diferentes.

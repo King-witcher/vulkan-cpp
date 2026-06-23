@@ -36,8 +36,13 @@ namespace vkwiz
 
 		vk::raii::Instance createInstance() const;
 		void createSyncObjects();
-		void recordCommandBuffer(vk::raii::CommandBuffer &commandBuffer, vk::Image image, vk::ImageView imageView);
+		void recordCommandBuffer(
+				vk::raii::CommandBuffer &commandBuffer,
+				vk::Image image,
+				vk::ImageView imageView,
+				vk::raii::Buffer &vertexBuffer,
+				u32 vertices);
 		void recreateSwapChain();
-		void draw();
+		void draw(vk::raii::Buffer &vertexBuffer, u32 vertices);
 	};
 }

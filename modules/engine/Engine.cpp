@@ -1,6 +1,7 @@
 #include "Engine.h"
 #include "RustTypes.h"
 #include "Input.h"
+#include "Model.h"
 
 #include <iostream>
 #include <memory>
@@ -9,9 +10,20 @@ using namespace vkwiz;
 
 void vkwiz::Engine::run()
 {
+	std::vector<vkwiz::Model::Vertex> vertices = {
+			{{0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+			{{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+			{{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+	};
+	vkwiz::Model model(vertices);
+	auto dataSize = vertices.size() * sizeof(vkwiz::Model::Vertex);
+	auto [buffer, mem] = device_.alloc(dataSize);
+	auto ptr = *mem.mapMemory(0, dataSize);
+	memcpy(ptr, vertices.data(), dataSize);
+	mem.unmapMemory();
 	for (;;)
 	{
-		draw();
+		draw(buffer, vertices.size());
 		input::update();
 		if (input::shouldQuit())
 			break;
@@ -103,7 +115,12 @@ void transition_image_layout(
 	commandBuffer.pipelineBarrier2(dependencyInfo);
 }
 
-void vkwiz::Engine::recordCommandBuffer(vk::raii::CommandBuffer &commandBuffer, vk::Image image, vk::ImageView imageView)
+void vkwiz::Engine::recordCommandBuffer(
+		vk::raii::CommandBuffer &commandBuffer,
+		vk::Image image,
+		vk::ImageView imageView,
+		vk::raii::Buffer &vertexBuffer,
+		u32 vertices)
 {
 	auto extent = swapChain_->extent();
 	commandBuffer.begin({});
@@ -134,6 +151,7 @@ void vkwiz::Engine::recordCommandBuffer(vk::raii::CommandBuffer &commandBuffer, 
 	commandBuffer.beginRendering(renderingInfo);
 
 	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_.vkPipeline());
+	commandBuffer.bindVertexBuffers(0, *vertexBuffer, {0}); // See v2
 
 	commandBuffer.setViewport(
 			0,
@@ -151,7 +169,7 @@ void vkwiz::Engine::recordCommandBuffer(vk::raii::CommandBuffer &commandBuffer, 
 					.offset = vk::Offset2D{0, 0},
 					.extent = extent});
 
-	commandBuffer.draw(3, 1, 0, 0);
+	commandBuffer.draw(vertices, 1, 0, 0);
 
 	commandBuffer.endRendering();
 
@@ -177,7 +195,7 @@ void vkwiz::Engine::recreateSwapChain()
 	swapChain_ = std::make_unique<SwapChain>(device_, vkSurface_, *swapChain_->vkSwapChain());
 }
 
-void vkwiz::Engine::draw()
+void vkwiz::Engine::draw(vk::raii::Buffer &vertexBuffer, u32 vertices)
 {
 	device_.waitForFence(inFlightFences_[frameIndex_]);
 	auto [success, image, imageView, imageIndex] = swapChain_->acquireImage(presentCompleteSemaphores_[frameIndex_], nullptr);
@@ -189,7 +207,8 @@ void vkwiz::Engine::draw()
 	device_.resetFence(inFlightFences_[frameIndex_]);
 
 	vkCommandbuffers_[frameIndex_].reset();
-	recordCommandBuffer(vkCommandbuffers_[frameIndex_], image, imageView);
+
+	recordCommandBuffer(vkCommandbuffers_[frameIndex_], image, imageView, vertexBuffer, vertices);
 
 	auto presentSemaphore = *presentCompleteSemaphores_[frameIndex_];
 	auto renderSemaphore = *renderFinishedSemaphores_[imageIndex];
