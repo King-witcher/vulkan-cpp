@@ -24,4 +24,5 @@ target_include_directories(engine PUBLIC
 target_link_libraries(engine PUBLIC
     VkWizard::core
     Vulkan::Vulkan
-    SDL3::SDL3)
+    SDL3::SDL3
+    glm::glm)

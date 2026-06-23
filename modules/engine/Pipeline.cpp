@@ -1,5 +1,6 @@
 #include "Pipeline.h"
 #include "RustTypes.h"
+#include "Model.h"
 
 #include <memory.h>
 #include <fstream>
@@ -26,8 +27,14 @@ vkwiz::Pipeline::Pipeline(Device &device, vkwiz::SwapChain &swapchain, std::stri
 	auto shaderCode = readFile(shaderPath);
 	vkShaderModule_ = device.createShaderModule(shaderCode);
 
+	auto bindingDescription = Model::Vertex::getBindingDescription();
+	auto attributeDescriptions = Model::Vertex::getAttributeDescriptions();
+
 	// Fixed functions
 	vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
+	vertexInputInfo.setVertexBindingDescriptions({bindingDescription});
+	vertexInputInfo.setVertexAttributeDescriptions(attributeDescriptions);
+
 	vk::PipelineInputAssemblyStateCreateInfo inputAssembly;
 	inputAssembly.setTopology(vk::PrimitiveTopology::eTriangleList);
 	// Created dynamically

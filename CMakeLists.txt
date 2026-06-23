@@ -40,6 +40,30 @@ FetchContent_MakeAvailable(SDL3)  # Clona a tag e faz o add_subdirectory() dele,
 
 # após esta linha existe o alvo SDL3::SDL3
 
+# ---- GLM -------------------------------------------------------------------
+# Biblioteca de matemática (vetores/matrizes) header-only. Baixada e disponível
+# como o alvo glm::glm — não compila nada, só propaga os headers.
+FetchContent_Declare(glm
+    GIT_REPOSITORY https://github.com/g-truc/glm.git
+    GIT_TAG        1.0.3            # fixe uma tag p/ builds reprodutíveis
+    GIT_SHALLOW    TRUE)
+# Não compila a lib do GLM: usamos só os headers. Sem isto, o GLM cria um alvo
+# compilado que força CMAKE_CXX_STANDARD_REQUIRED=ON e exige CXX26 estrito —
+# flag que o MSVC não reconhece, quebrando o configure. Com OFF, o alvo glm vira
+# INTERFACE (header-only) e o problema do dialeto desaparece.
+set(GLM_BUILD_LIBRARY OFF)
+FetchContent_MakeAvailable(glm)
+
+# Configurações do GLM exigidas pelo Vulkan, propagadas a TODO consumidor do alvo:
+#   GLM_FORCE_DEPTH_ZERO_TO_ONE -> Vulkan usa profundidade 0..1 (não -1..1 do OpenGL)
+#   GLM_FORCE_RADIANS           -> ângulos sempre em radianos, evita surpresas
+# INTERFACE = aplica a quem linka glm::glm, não ao build (header-only) do próprio GLM.
+target_compile_definitions(glm INTERFACE
+    GLM_FORCE_DEPTH_ZERO_TO_ONE
+    GLM_FORCE_RADIANS)
+
+# após esta linha existe o alvo glm::glm
+
 # ---- Módulos (ordem = de baixo para cima na pilha de dependências) ---------
 add_subdirectory(modules/core)     # tipos/utilitários base, sem dependências externas
 add_subdirectory(modules/engine)   # renderer + plataforma (usa core + Vulkan + SDL3)
