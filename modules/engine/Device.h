@@ -30,11 +30,11 @@ namespace vkwiz
 		u32 graphicsIndex();
 		vk::raii::Device &vkDevice() { return vkDevice_; }
 		vk::raii::CommandPool &vkCommandPool() { return vkCommandPool_; }
-		vk::raii::Buffer createVertexBuffer(usize size);
-		u32 findMemoryType(u32 typeFilter, vk::MemoryPropertyFlags properties);
-		vk::raii::DeviceMemory allocateMemory(vk::MemoryRequirements2 requirements);
+		std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> alloc(usize size);
 
 	private:
+		u32 findMemoryType(u32 typeFilter, vk::MemoryPropertyFlags properties);
+
 		vk::raii::PhysicalDevice vkPhysicalDevice_ = nullptr;
 		vk::raii::Device vkDevice_ = nullptr;
 		vk::raii::Queue vkGraphicsQueue_ = nullptr;

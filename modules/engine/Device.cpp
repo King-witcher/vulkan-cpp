@@ -195,17 +195,30 @@ vk::raii::ShaderModule vkwiz::Device::createShaderModule(const std::vector<u8> c
 	return std::move(*vkDevice_.createShaderModule(createInfo));
 }
 
-vk::raii::Buffer vkwiz::Device::createVertexBuffer(usize size)
+std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> vkwiz::Device::alloc(usize size)
 {
-	vk::BufferCreateInfo info;
-	info.setSize(size);
-	info.setUsage(vk::BufferUsageFlagBits::eVertexBuffer);
-	info.setSharingMode(vk::SharingMode::eExclusive);
-	auto [result, buffer] = vkDevice_.createBuffer(info);
-	if (result != vk::Result::eSuccess)
-		panic("failed to allocate buffer");
+	// Create buffer
+	vk::BufferCreateInfo bufferInfo;
+	bufferInfo.setSize(size);
+	bufferInfo.setUsage(vk::BufferUsageFlagBits::eVertexBuffer);
+	bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
+	auto bufferResult = vkDevice_.createBuffer(bufferInfo);
+	if (!bufferResult.has_value())
+		panic("failed to create buffer");
+	auto buffer = std::move(*bufferResult);
 
-	return std::move(buffer);
+	// Allocate memory
+	auto requirements = buffer.getMemoryRequirements();
+	auto memType = findMemoryType(requirements.memoryTypeBits,
+																vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+	vk::MemoryAllocateInfo memInfo;
+	memInfo.setAllocationSize(requirements.size);
+	memInfo.setMemoryTypeIndex(memType);
+	auto memResult = vkDevice_.allocateMemory(memInfo);
+	if (!memResult.has_value())
+		panic("failed to alloc memory for buffer");
+	auto memory = std::move(*memResult);
+	return std::make_tuple(buffer, memory);
 }
 
 // Existem heaps diferentes como VRAM e espaço de swap na RAM pra quando a VRAM acaba. São heaps diferentes.
@@ -223,18 +236,4 @@ u32 vkwiz::Device::findMemoryType(u32 supportedTypes, vk::MemoryPropertyFlags pr
 	}
 
 	throw std::runtime_error("failed to find suitable memory type");
-}
-
-vk::raii::DeviceMemory vkwiz::Device::allocateMemory(vk::MemoryRequirements2 requirements)
-{
-	vk::MemoryAllocateInfo allocInfo;
-	allocInfo.setAllocationSize(requirements.memoryRequirements.size);
-	auto memoryType = findMemoryType(
-			requirements.memoryRequirements.memoryTypeBits,
-			vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-	allocInfo.setMemoryTypeIndex(memoryType);
-	auto allocResult = vkDevice_.allocateMemory(allocInfo);
-	if (!allocResult.has_value())
-		panic("failed to allocate buffer memory");
-	return std::move(*allocResult);
 }
