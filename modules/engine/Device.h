@@ -31,6 +31,7 @@ namespace vkwiz
 		vk::raii::Device &vkDevice() { return vkDevice_; }
 		vk::raii::CommandPool &vkCommandPool() { return vkCommandPool_; }
 		vk::raii::Buffer createVertexBuffer(usize size);
+		u32 findMemoryType(u32 typeFilter, vk::MemoryPropertyFlags properties);
 
 	private:
 		vk::raii::PhysicalDevice vkPhysicalDevice_ = nullptr;

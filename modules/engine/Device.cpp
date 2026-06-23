@@ -207,3 +207,20 @@ vk::raii::Buffer vkwiz::Device::createVertexBuffer(usize size)
 
 	return std::move(buffer);
 }
+
+// Existem heaps diferentes como VRAM e espaço de swap na RAM pra quando a VRAM acaba. São heaps diferentes.
+// Dentro de cada heap, existem tipos diferentes de memória.
+u32 vkwiz::Device::findMemoryType(u32 supportedTypes, vk::MemoryPropertyFlags properties)
+{
+	auto memProps = vkPhysicalDevice_.getMemoryProperties2();
+	for (u32 i = 0; i < memProps.memoryProperties.memoryTypeCount; i++)
+	{
+		if ((supportedTypes & (1 << i)) &&																											 // Buffer suporta tipo i?
+				(memProps.memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) // Tipo i tem todas as flags que eu pedi?
+		{
+			return i;
+		}
+	}
+
+	throw std::runtime_error("failed to find suitable memory type");
+}
