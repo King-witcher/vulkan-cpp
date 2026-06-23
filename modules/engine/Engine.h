@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Window.h"
-#include "Vulkan.h"
+#include <vulkan/vulkan_raii.hpp>
 #include "Device.h"
 #include "SwapChain.h"
 #include "Pipeline.h"
@@ -26,7 +26,7 @@ namespace vkwiz
 		vk::raii::SurfaceKHR vkSurface_ = window_.getVulkanSurface(vkInstance_);
 		Device device_ = {vkInstance_, vkSurface_};
 		std::unique_ptr<SwapChain> swapChain_ = std::make_unique<SwapChain>(device_, vkSurface_);
-		Pipeline pipeline_ = {device_, *swapChain_, "shaders/shader.spv", window_.extent()};
+		Pipeline pipeline_ = {device_, *swapChain_, "shaders/shader.spv"};
 		u32 frameIndex_ = 0;
 
 		std::vector<vk::raii::CommandBuffer> vkCommandbuffers_ = device_.allocateCommandBuffers(MAX_FRAMES_IN_FLIGHT);

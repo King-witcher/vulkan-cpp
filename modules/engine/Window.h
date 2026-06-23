@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Vulkan.h"
+#include <vulkan/vulkan_raii.hpp>
 #include "RustTypes.h"
 
 #include <SDL3/SDL.h>

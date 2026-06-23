@@ -18,8 +18,17 @@ target_include_directories(engine PUBLIC
 
 # (O padrão C++26 vem de CMAKE_CXX_STANDARD, definido no CMakeLists raiz.)
 
+# Defines do vulkan.hpp. PUBLIC para que valham em TODA translation unit que
+# inclui <vulkan/vulkan_raii.hpp> (engine e game) — o header é header-only, então
+# os defines têm de estar ativos em todo consumidor, senão há ODR violation.
+# Como -D na linha de compilação, ficam garantidos antes de qualquer #include.
+target_compile_definitions(engine PUBLIC
+    VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
+    VULKAN_HPP_NO_EXCEPTIONS
+    VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS)
+
 # Dependências PUBLIC porque aparecem nos headers públicos do engine
-# (Vulkan.h inclui vulkan; Window.h usa SDL; vários headers usam tipos de core).
+# (vários headers incluem vulkan_raii.hpp; Window.h usa SDL; usam tipos de core).
 # Sendo PUBLIC, o game herda Vulkan/SDL3/core de graça só por linkar o engine.
 target_link_libraries(engine PUBLIC
     VkWizard::core

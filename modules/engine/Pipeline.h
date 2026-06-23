@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Vulkan.h"
+#include <vulkan/vulkan_raii.hpp>
 #include "Device.h"
 #include "RustTypes.h"
 #include "SwapChain.h"
@@ -12,7 +12,7 @@ namespace vkwiz {
 	class Pipeline
 	{
 	public:
-		Pipeline(Device& device, vkwiz::SwapChain& swapchain, std::string shaderPath, vk::Extent2D extent);
+		Pipeline(Device& device, vkwiz::SwapChain& swapchain, std::string shaderPath);
 
 		vk::raii::Pipeline& vkPipeline() { return vkPipeline_; }
 

@@ -1,7 +1,7 @@
 #pragma once
 #include "RustTypes.h"
 #include "glm/glm.hpp"
-#include "Vulkan.h"
+#include <vulkan/vulkan_raii.hpp>
 
 #include <vector>
 
@@ -12,8 +12,8 @@ namespace vkwiz
   public:
     struct Vertex
     {
-      glm::vec3 position[3];
-      glm::vec3 color[3];
+      glm::vec3 position;
+      glm::vec3 color;
 
       static vk::VertexInputBindingDescription getBindingDescription()
       {
@@ -37,16 +37,13 @@ namespace vkwiz
         color.setLocation(1);
         color.setBinding(0);
         color.setFormat(vk::Format::eR32G32B32Sfloat);
-        position.setOffset(offsetof(Vertex, position));
+        color.setOffset(offsetof(Vertex, color));
 
         return {position, color};
       }
     };
 
-    Model(const std::vector<Vertex> vertices)
-    {
-      this->vertices = vertices;
-    }
+    Model(const std::vector<Vertex> vertices) : vertices(std::move(vertices)) {}
 
     std::vector<Vertex> vertices;
   };

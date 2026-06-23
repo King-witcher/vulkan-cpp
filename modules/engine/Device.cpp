@@ -194,3 +194,16 @@ vk::raii::ShaderModule vkwiz::Device::createShaderModule(const std::vector<u8> c
 	};
 	return std::move(*vkDevice_.createShaderModule(createInfo));
 }
+
+vk::raii::Buffer vkwiz::Device::createVertexBuffer(usize size)
+{
+	vk::BufferCreateInfo info;
+	info.setSize(size);
+	info.setUsage(vk::BufferUsageFlagBits::eVertexBuffer);
+	info.setSharingMode(vk::SharingMode::eExclusive);
+	auto [result, buffer] = vkDevice_.createBuffer(info);
+	if (result != vk::Result::eSuccess)
+		panic("failed to allocate buffer");
+
+	return std::move(buffer);
+}

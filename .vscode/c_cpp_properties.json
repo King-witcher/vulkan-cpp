@@ -16,12 +16,21 @@
             "defines": [
                 "_DEBUG",
                 "UNICODE",
-                "_UNICODE"
+                "_UNICODE",
+                "VULKAN_HPP_NO_STRUCT_CONSTRUCTORS",
+                "VULKAN_HPP_NO_EXCEPTIONS",
+                "VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS"
             ],
             "windowsSdkVersion": "10.0.22621.0",
             "cStandard": "c23",
             "cppStandard": "c++26",
-            "intelliSenseMode": "msvc-x64"
+            "intelliSenseMode": "msvc-x64",
+            // Faz a extensão C/C++ herdar includePath/defines/padrão direto dos
+            // alvos do CMake (inclui target_compile_definitions). Requer a
+            // extensão "CMake Tools" instalada e o projeto configurado por ela.
+            // Quando ativo, sobrescreve os campos acima; os defines manuais
+            // ficam só como fallback.
+            "configurationProvider": "ms-vscode.cmake-tools"
         }
     ],
     "version": 4,

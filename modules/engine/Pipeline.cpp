@@ -2,7 +2,6 @@
 #include "RustTypes.h"
 #include "Model.h"
 
-#include <memory.h>
 #include <fstream>
 
 using namespace std;
@@ -17,22 +16,21 @@ static vector<u8> readFile(const string &filename)
 	vector<u8> buffer(file.tellg());
 	file.seekg(0, std::ios::beg);
 	file.read(reinterpret_cast<char *>(buffer.data()), buffer.size());
-	file.close();
 	return buffer;
 }
 
-vkwiz::Pipeline::Pipeline(Device &device, vkwiz::SwapChain &swapchain, std::string shaderPath, vk::Extent2D extent)
+vkwiz::Pipeline::Pipeline(Device &device, vkwiz::SwapChain &swapchain, std::string shaderPath)
 {
 	auto &vkDevice = device.vkDevice();
 	auto shaderCode = readFile(shaderPath);
 	vkShaderModule_ = device.createShaderModule(shaderCode);
 
-	auto bindingDescription = Model::Vertex::getBindingDescription();
+	auto bindingDescriptions = Model::Vertex::getBindingDescription();
 	auto attributeDescriptions = Model::Vertex::getAttributeDescriptions();
 
 	// Fixed functions
 	vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
-	vertexInputInfo.setVertexBindingDescriptions({bindingDescription});
+	vertexInputInfo.setVertexBindingDescriptions(bindingDescriptions);
 	vertexInputInfo.setVertexAttributeDescriptions(attributeDescriptions);
 
 	vk::PipelineInputAssemblyStateCreateInfo inputAssembly;
@@ -83,12 +81,12 @@ vkwiz::Pipeline::Pipeline(Device &device, vkwiz::SwapChain &swapchain, std::stri
 	vk::PipelineColorBlendStateCreateInfo colorBlending;
 	colorBlending.setLogicOpEnable(vk::False);
 	colorBlending.setLogicOp(vk::LogicOp::eCopy);
-	colorBlending.setAttachments({colorBlendAttachment});
+	colorBlending.setAttachments(colorBlendAttachment);
 
 	// Required for dynamic rendering
 	vk::PipelineRenderingCreateInfo pipelineRenderingInfo;
 	auto format = swapchain.imageFormat();
-	pipelineRenderingInfo.setColorAttachmentFormats({format});
+	pipelineRenderingInfo.setColorAttachmentFormats(format);
 
 	// Pipeline layout
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;

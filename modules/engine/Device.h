@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Vulkan.h"
+#include <vulkan/vulkan_raii.hpp>
 #include "RustTypes.h"
 
 namespace vkwiz
@@ -30,6 +30,7 @@ namespace vkwiz
 		u32 graphicsIndex();
 		vk::raii::Device &vkDevice() { return vkDevice_; }
 		vk::raii::CommandPool &vkCommandPool() { return vkCommandPool_; }
+		vk::raii::Buffer createVertexBuffer(usize size);
 
 	private:
 		vk::raii::PhysicalDevice vkPhysicalDevice_ = nullptr;
