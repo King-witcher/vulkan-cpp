@@ -30,7 +30,7 @@ namespace gd
 		u32 inFlightIndex = 0;
 
 		std::vector<vk::raii::CommandBuffer> vkCommandbuffers_ = device_.allocateCommandBuffers(MAX_FRAMES_IN_FLIGHT);
-		std::vector<vk::raii::Semaphore> renderFinishedSemaphores_;
+		// std::vector<vk::raii::Semaphore> renderFinishedSemaphores_;
 		std::vector<vk::raii::Semaphore> presentCompleteSemaphores_;
 		std::vector<vk::raii::Fence> inFlightFences_;
 

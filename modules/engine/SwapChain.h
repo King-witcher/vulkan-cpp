@@ -35,7 +35,6 @@ namespace gd
 		vk::Format imageFormat() const { return vkImageFormat_; }
 		vk::Extent2D extent() const { return extent_; }
 		vk::raii::SwapchainKHR &vkSwapChain() { return vkSwapChain_; }
-		usize imageCount() const { return frames_.size(); }
 		vk::SwapchainKHR operator*() const { return *vkSwapChain_; }
 		void present(gd::Frame &frame);
 

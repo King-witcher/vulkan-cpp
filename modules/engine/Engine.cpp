@@ -63,15 +63,15 @@ vk::raii::Instance gd::Engine::createInstance() const
 void gd::Engine::createSyncObjects()
 {
 	auto &vkDevice = device_.vkDevice();
-	auto imageCount = swapChain_->imageCount();
+	// auto imageCount = swapChain_->imageCount();
 	auto fenceCreateInfo = vk::FenceCreateInfo{};
 	fenceCreateInfo.setFlags(vk::FenceCreateFlagBits::eSignaled);
 
-	for (size_t i = 0; i < imageCount; i++)
-	{
-		auto semaphore = std::move(*vkDevice.createSemaphore({}));
-		renderFinishedSemaphores_.push_back(std::move(semaphore));
-	}
+	// for (size_t i = 0; i < imageCount; i++)
+	// {
+	// 	auto semaphore = std::move(*vkDevice.createSemaphore({}));
+	// 	renderFinishedSemaphores_.push_back(std::move(semaphore));
+	// }
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
@@ -199,7 +199,7 @@ void gd::Engine::draw(vk::raii::Buffer &vertexBuffer, u32 vertices)
 {
 	device_.waitForFence(inFlightFences_[inFlightIndex]);
 	auto presentReady = *presentCompleteSemaphores_[inFlightIndex];
-	auto &frame = swapChain_->acquireNextFrame(*presentCompleteSemaphores_[inFlightIndex]);
+	auto &frame = swapChain_->acquireNextFrame(presentReady);
 	device_.resetFence(inFlightFences_[inFlightIndex]);
 
 	vkCommandbuffers_[inFlightIndex].reset();
@@ -216,7 +216,6 @@ void gd::Engine::draw(vk::raii::Buffer &vertexBuffer, u32 vertices)
 	submitInfo.setWaitSemaphores(presentReady);
 	submitInfo.setCommandBuffers(commandBuffer);
 	submitInfo.setSignalSemaphores(renderReady);
-
 	device_.submitGraphics(submitInfo, *inFlightFences_[inFlightIndex]);
 
 	// Present

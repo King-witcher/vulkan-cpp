@@ -176,10 +176,7 @@ bool gd::Device::present(vk::PresentInfoKHR &presentInfo)
 	case vk::Result::eSuccess:
 		return true;
 	case vk::Result::eErrorOutOfDateKHR:
-		std::cerr << "swap chain was out of date when presenting" << std::endl;
-		return false;
 	case vk::Result::eSuboptimalKHR:
-		std::cerr << "swap chain was suboptimal when presenting" << std::endl;
 		return false;
 	default:
 		panic("failed to present swapchain image");
