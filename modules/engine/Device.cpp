@@ -5,15 +5,16 @@
 #include <vector>
 #include <array>
 #include <iostream>
+#include <format>
 
 using namespace vkwiz;
 
 std::array REQUIRED_EXTENSIONS = {
-		vk::KHRShaderDrawParametersExtensionName,
-		vk::KHRCreateRenderpass2ExtensionName,
-		vk::KHRSynchronization2ExtensionName,
-		vk::KHRSwapchainExtensionName,
-		vk::KHRSpirv14ExtensionName,
+	vk::KHRShaderDrawParametersExtensionName,
+	vk::KHRCreateRenderpass2ExtensionName,
+	vk::KHRSynchronization2ExtensionName,
+	vk::KHRSwapchainExtensionName,
+	vk::KHRSpirv14ExtensionName,
 };
 
 bool isDeviceSuitable(vk::raii::PhysicalDevice device)
@@ -53,82 +54,103 @@ vk::raii::PhysicalDevice pickPhysicalDevice(vk::raii::Instance &instance)
 	throw std::runtime_error("failed to find a suitable GPU!");
 }
 
-u32 findQueueFamilies(vk::raii::PhysicalDevice device)
+/** Gets the index of the first queue family that supports graphics in a specific device. */
+u32 findGraphicsQueueFamily(vk::raii::PhysicalDevice device)
 {
-	auto queueFamilies = device.getQueueFamilyProperties();
-	auto familyProperty = std::find_if(
-			queueFamilies.begin(),
-			queueFamilies.end(),
-			[](vk::QueueFamilyProperties const &properties)
-			{
-				return properties.queueFlags & vk::QueueFlagBits::eGraphics;
-			});
-	return static_cast<u32>(std::distance(queueFamilies.begin(), familyProperty));
+	auto familyProperties = device.getQueueFamilyProperties();
+
+	for (u32 i = 0; i < familyProperties.size(); i++)
+	{
+		auto familyProperty = familyProperties[i];
+		if (familyProperty.queueFlags & vk::QueueFlagBits::eGraphics)
+			return i;
+	}
+	throw new std::exception("unreachable: Vulkan requires implementations to expose at least one graphics queue family");
 }
 
 vk::raii::Device createLogicalDevice(vk::raii::PhysicalDevice physicalDevice, u32 graphicsIndex)
 {
+	using namespace vk;
+
 	std::array queuePriorities = {0.5f};
-	std::array queueCreateInfos = {vk::DeviceQueueCreateInfo()};
-	queueCreateInfos[0].setQueuePriorities(queuePriorities);
+	DeviceQueueCreateInfo queueCreateInfo;
+	queueCreateInfo.setQueuePriorities(queuePriorities);
+	std::array queueCreateInfos = {queueCreateInfo};
 
-	vk::StructureChain<
-			vk::PhysicalDeviceFeatures2,
-			vk::PhysicalDeviceVulkan13Features,
-			vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>
-			featureChain = {
-					{}, // vk::PhysicalDeviceFeatures2 (empty for now)
-					{
-							.synchronization2 = true,
-							.dynamicRendering = true,
-					},														 // Enable dynamic rendering from Vulkan 1.3
-					{.extendedDynamicState = true} // Enable extended dynamic state from the extension
-			};
+	StructureChain<PhysicalDeviceFeatures2, PhysicalDeviceVulkan13Features, PhysicalDeviceExtendedDynamicStateFeaturesEXT>
+		featureChain = {
+			{}, // vk::PhysicalDeviceFeatures2 (empty for now)
+			{
+				.synchronization2 = true,
+				.dynamicRendering = true,
+			},							   // Enable dynamic rendering from Vulkan 1.3
+			{.extendedDynamicState = true} // Enable extended dynamic state from the extension
+		};
 
-	vk::DeviceCreateInfo deviceCreateInfo{};
-	deviceCreateInfo.setPNext(&featureChain.get());
-	deviceCreateInfo.setQueueCreateInfos(queueCreateInfos);
-	deviceCreateInfo.setPEnabledExtensionNames(REQUIRED_EXTENSIONS);
+	DeviceCreateInfo deviceInfo{};
+	deviceInfo.setPNext(&featureChain.get());
+	deviceInfo.setQueueCreateInfos(queueCreateInfos);
+	deviceInfo.setPEnabledExtensionNames(REQUIRED_EXTENSIONS);
 
-	return std::move(*physicalDevice.createDevice(deviceCreateInfo));
+	auto createResult = physicalDevice.createDevice(deviceInfo);
+	if (!createResult.has_value())
+	{
+		panic("failed to create device");
+	}
+
+	return std::move(*createResult);
+}
+
+vk::raii::CommandPool createCommandPool(vk::raii::Device &vkDevice, u32 graphicsIndex)
+{
+	using namespace vk;
+	CommandPoolCreateInfo createInfo;
+	createInfo.setFlags(CommandPoolCreateFlagBits::eResetCommandBuffer);
+	createInfo.setQueueFamilyIndex(graphicsIndex);
+
+	auto createResult = vkDevice.createCommandPool(createInfo);
+	if (createResult.has_value())
+		return std::move(*createResult);
+	panic("failed to create command pool");
 }
 
 vkwiz::Device::Device(vk::raii::Instance &instance, vk::raii::SurfaceKHR &surface)
 {
 	vkPhysicalDevice_ = pickPhysicalDevice(instance);
-	graphicsIndex_ = findQueueFamilies(vkPhysicalDevice_);
+	auto graphicsIndex = findGraphicsQueueFamily(vkPhysicalDevice_);
 
 	// TODO: Consider different queue families for presentation
-	if (!*(vkPhysicalDevice_.getSurfaceSupportKHR(graphicsIndex_, surface)))
-		throw std::runtime_error("Selected physical device does not support presentation to the given surface.");
+	auto [surfaceSupportResult, surfaceSupport] = vkPhysicalDevice_.getSurfaceSupportKHR(graphicsIndex, surface);
+	if (surfaceSupportResult != vk::Result::eSuccess)
+		panic("Failed to get surface support for physical device.");
+	if (surfaceSupport == vk::False)
+		panic("Selected physical device does not support presentation to the given surface.");
 
-	vkDevice_ = createLogicalDevice(vkPhysicalDevice_, graphicsIndex_);
-	vkGraphicsQueue_ = std::move(vkDevice_.getQueue(graphicsIndex_, 0));
+	vkDevice_ = createLogicalDevice(vkPhysicalDevice_, graphicsIndex);
+	vkCommandPool_ = createCommandPool(vkDevice_, graphicsIndex);
+	vkGraphicsQueue_ = vkDevice_.getQueue(graphicsIndex, 0);
 	vkPresentQueue_ = vkGraphicsQueue_;
-
-	vkCommandPool_ = std::move(*vkDevice_.createCommandPool(
-			vk::CommandPoolCreateInfo{
-					.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-					.queueFamilyIndex = graphicsIndex_,
-			}));
 }
 
-SwapchainSurfaceSupportDetails vkwiz::Device::querySwapchainSupportDetails(vk::raii::SurfaceKHR &surface)
+/** Gets information about the surface support for the physical device */
+SurfaceSupport vkwiz::Device::getSurfaceSupport(vk::raii::SurfaceKHR &surface)
 {
-	auto capabilities = *vkPhysicalDevice_.getSurfaceCapabilitiesKHR(surface);
-	auto formats = *vkPhysicalDevice_.getSurfaceFormatsKHR(surface);
-	auto presentModes = *vkPhysicalDevice_.getSurfacePresentModesKHR(surface);
+	auto capabilities = vkPhysicalDevice_.getSurfaceCapabilitiesKHR(surface);
+	auto formats = vkPhysicalDevice_.getSurfaceFormatsKHR(surface);
+	auto presentModes = vkPhysicalDevice_.getSurfacePresentModesKHR(surface);
 
-	return SwapchainSurfaceSupportDetails{
-			.capabilities = capabilities,
-			.formats = formats,
-			.presentModes = presentModes,
+	if (capabilities.result != vk::Result::eSuccess)
+		panic("Failed to get surface capabilities for physical device.");
+	if (formats.result != vk::Result::eSuccess)
+		panic("Failed to get surface formats for physical device.");
+	if (presentModes.result != vk::Result::eSuccess)
+		panic("Failed to get surface present modes for physical device.");
+
+	return SurfaceSupport{
+		.capabilities = *capabilities,
+		.formats = *formats,
+		.presentModes = *presentModes,
 	};
-}
-
-u32 vkwiz::Device::graphicsIndex()
-{
-	return graphicsIndex_;
 }
 
 void vkwiz::Device::resetFence(vk::raii::Fence &fence)
@@ -167,9 +189,9 @@ bool vkwiz::Device::present(vk::PresentInfoKHR &presentInfo)
 std::vector<vk::raii::CommandBuffer> vkwiz::Device::allocateCommandBuffers(u32 count) const
 {
 	vk::CommandBufferAllocateInfo allocateInfo{
-			.commandPool = vkCommandPool_,
-			.level = vk::CommandBufferLevel::ePrimary,
-			.commandBufferCount = count,
+		.commandPool = vkCommandPool_,
+		.level = vk::CommandBufferLevel::ePrimary,
+		.commandBufferCount = count,
 	};
 	return std::move(*vkDevice_.allocateCommandBuffers(allocateInfo));
 }
@@ -182,15 +204,15 @@ vk::raii::Semaphore vkwiz::Device::createSemaphore() const
 vk::raii::Fence vkwiz::Device::createFence(bool signaled) const
 {
 	return std::move(*vkDevice_.createFence({
-			.flags = signaled ? vk::FenceCreateFlagBits::eSignaled : vk::FenceCreateFlags{},
+		.flags = signaled ? vk::FenceCreateFlagBits::eSignaled : vk::FenceCreateFlags{},
 	}));
 }
 
 vk::raii::ShaderModule vkwiz::Device::createShaderModule(const std::vector<u8> code) const
 {
 	vk::ShaderModuleCreateInfo createInfo{
-			.codeSize = code.size(),
-			.pCode = reinterpret_cast<const u32 *>(code.data()),
+		.codeSize = code.size(),
+		.pCode = reinterpret_cast<const u32 *>(code.data()),
 	};
 	return std::move(*vkDevice_.createShaderModule(createInfo));
 }
@@ -212,7 +234,7 @@ std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> vkwiz::Device::alloc(usize 
 	// Estamos usando HostCoherent para não precisar dar vkDevice_.mapFlushedMemoryRanges() depois de escrever na memória mapeada e vkDevice_.invalidateMappedMemoryRanges antes de ler da memória mapeada.
 	// Mas isso tem desempenho pior e pode ser mudado depois.
 	auto memType = findMemoryType(requirements.memoryTypeBits,
-																vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+								  vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 	vk::MemoryAllocateInfo memInfo;
 	memInfo.setAllocationSize(requirements.size);
 	memInfo.setMemoryTypeIndex(memType);
@@ -235,8 +257,8 @@ u32 vkwiz::Device::findMemoryType(u32 supportedTypes, vk::MemoryPropertyFlags pr
 	auto memProps = vkPhysicalDevice_.getMemoryProperties2();
 	for (u32 i = 0; i < memProps.memoryProperties.memoryTypeCount; i++)
 	{
-		if ((supportedTypes & (1 << i)) &&																											 // Buffer suporta tipo i?
-				(memProps.memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) // Tipo i tem todas as flags que eu pedi?
+		if ((supportedTypes & (1 << i)) &&														 // Buffer suporta tipo i?
+			(memProps.memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) // Tipo i tem todas as flags que eu pedi?
 		{
 			return i;
 		}

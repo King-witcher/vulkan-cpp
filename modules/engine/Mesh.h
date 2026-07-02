@@ -7,7 +7,7 @@
 
 namespace vkwiz
 {
-  class Model
+  class Mesh
   {
   public:
     struct Vertex
@@ -43,7 +43,7 @@ namespace vkwiz
       }
     };
 
-    Model(const std::vector<Vertex> vertices) : vertices(std::move(vertices)) {}
+    Mesh(const std::vector<Vertex> vertices) : vertices(std::move(vertices)) {}
 
     std::vector<Vertex> vertices;
   };

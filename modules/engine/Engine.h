@@ -21,7 +21,7 @@ namespace vkwiz
 
 	private:
 		vk::raii::Context vkContext_;
-		Window window_{"Vulkan Window"};
+		Window window_{"Giuseppe"};
 		vk::raii::Instance vkInstance_ = createInstance();
 		vk::raii::SurfaceKHR vkSurface_ = window_.getVulkanSurface(vkInstance_);
 		Device device_ = {vkInstance_, vkSurface_};

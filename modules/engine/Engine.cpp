@@ -1,7 +1,7 @@
 #include "Engine.h"
 #include "RustTypes.h"
 #include "Input.h"
-#include "Model.h"
+#include "Mesh.h"
 
 #include <iostream>
 #include <memory>
@@ -10,13 +10,13 @@ using namespace vkwiz;
 
 void vkwiz::Engine::run()
 {
-	std::vector<vkwiz::Model::Vertex> vertices = {
+	std::vector<vkwiz::Mesh::Vertex> vertices = {
 			{{0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
 			{{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
 			{{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
 	};
-	vkwiz::Model model(vertices);
-	auto dataSize = vertices.size() * sizeof(vkwiz::Model::Vertex);
+	vkwiz::Mesh model(vertices);
+	auto dataSize = vertices.size() * sizeof(vkwiz::Mesh::Vertex);
 	auto [buffer, mem] = device_.alloc(dataSize);
 	auto ptr = *mem.mapMemory(0, dataSize);
 	memcpy(ptr, vertices.data(), dataSize);
@@ -244,6 +244,6 @@ void vkwiz::Engine::draw(vk::raii::Buffer &vertexBuffer, u32 vertices)
 vkwiz::Engine::Engine()
 {
 	window_.setPosition(-1400, 200);
-	auto windowExtent = window_.extent();
+	// auto windowExtent = window_.extent();
 	createSyncObjects();
 }

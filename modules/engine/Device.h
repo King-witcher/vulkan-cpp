@@ -5,7 +5,7 @@
 
 namespace vkwiz
 {
-	struct SwapchainSurfaceSupportDetails
+	struct SurfaceSupport
 	{
 		vk::SurfaceCapabilitiesKHR capabilities;
 		std::vector<vk::SurfaceFormatKHR> formats;
@@ -17,7 +17,7 @@ namespace vkwiz
 	public:
 		Device(vk::raii::Instance &instance, vk::raii::SurfaceKHR &surface);
 
-		SwapchainSurfaceSupportDetails querySwapchainSupportDetails(vk::raii::SurfaceKHR &surface);
+		SurfaceSupport getSurfaceSupport(vk::raii::SurfaceKHR &surface);
 		void resetFence(vk::raii::Fence &fence);
 		vk::Result waitForFence(vk::raii::Fence &fence);
 		void submitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence);
@@ -27,7 +27,6 @@ namespace vkwiz
 		vk::raii::Fence createFence(bool signaled = true) const;
 		vk::raii::ShaderModule createShaderModule(const std::vector<u8> code) const;
 
-		u32 graphicsIndex();
 		vk::raii::Device &vkDevice() { return vkDevice_; }
 		vk::raii::CommandPool &vkCommandPool() { return vkCommandPool_; }
 		std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> alloc(usize size);
@@ -40,6 +39,5 @@ namespace vkwiz
 		vk::raii::Queue vkGraphicsQueue_ = nullptr;
 		vk::raii::Queue vkPresentQueue_ = nullptr;
 		vk::raii::CommandPool vkCommandPool_ = nullptr;
-		u32 graphicsIndex_ = -1;
 	};
 }
