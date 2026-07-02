@@ -197,41 +197,33 @@ void gd::Engine::recreateSwapChain()
 
 void gd::Engine::draw(vk::raii::Buffer &vertexBuffer, u32 vertices)
 {
-	device_.waitForFence(inFlightFences_[frameIndex_]);
-	auto presentCompleteSemaphore = *presentCompleteSemaphores_[frameIndex_];
-	auto &frame = swapChain_->acquireNextFrame(*presentCompleteSemaphores_[frameIndex_]);
-	device_.resetFence(inFlightFences_[frameIndex_]);
+	device_.waitForFence(inFlightFences_[inFlightIndex]);
+	auto presentReady = *presentCompleteSemaphores_[inFlightIndex];
+	auto &frame = swapChain_->acquireNextFrame(*presentCompleteSemaphores_[inFlightIndex]);
+	device_.resetFence(inFlightFences_[inFlightIndex]);
 
-	vkCommandbuffers_[frameIndex_].reset();
+	vkCommandbuffers_[inFlightIndex].reset();
 
-	recordCommandBuffer(vkCommandbuffers_[frameIndex_], frame.getImage(), frame.getImageView(), vertexBuffer, vertices);
+	recordCommandBuffer(vkCommandbuffers_[inFlightIndex], frame.getImage(), frame.getImageView(), vertexBuffer, vertices);
 
-	auto presentSemaphore = *presentCompleteSemaphores_[frameIndex_];
-	auto renderSemaphore = frame.getSemaphore();
-	auto commandBuffer = *vkCommandbuffers_[frameIndex_];
+	auto renderReady = frame.getRenderReadySemaphore();
+	auto commandBuffer = *vkCommandbuffers_[inFlightIndex];
 
 	// Render
-	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 	vk::SubmitInfo submitInfo{};
-	submitInfo.setWaitSemaphores({presentSemaphore});
-	submitInfo.setPWaitDstStageMask(&waitDestinationStageMask);
-	submitInfo.setCommandBuffers({commandBuffer});
-	submitInfo.setSignalSemaphores({renderSemaphore});
+	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+	submitInfo.setWaitDstStageMask(waitDestinationStageMask);
+	submitInfo.setWaitSemaphores(presentReady);
+	submitInfo.setCommandBuffers(commandBuffer);
+	submitInfo.setSignalSemaphores(renderReady);
 
-	device_.submitGraphics(submitInfo, *inFlightFences_[frameIndex_]);
+	device_.submitGraphics(submitInfo, *inFlightFences_[inFlightIndex]);
 
 	// Present
 	swapChain_->present(frame);
 
-	frameIndex_ = (frameIndex_ + 1) % MAX_FRAMES_IN_FLIGHT;
+	inFlightIndex = (inFlightIndex + 1) % MAX_FRAMES_IN_FLIGHT;
 }
-// skipping swapchain recreation for now
-// else
-// {
-// 	recreateSwapChain();
-// 	return;
-// }
-// }
 
 gd::Engine::Engine()
 {

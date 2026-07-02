@@ -27,7 +27,7 @@ namespace gd
 		Device device_ = {vkInstance_, vkSurface_};
 		std::unique_ptr<SwapChain> swapChain_ = std::make_unique<SwapChain>(device_, vkSurface_);
 		Pipeline pipeline_ = {device_, *swapChain_, "shaders/shader.spv"};
-		u32 frameIndex_ = 0;
+		u32 inFlightIndex = 0;
 
 		std::vector<vk::raii::CommandBuffer> vkCommandbuffers_ = device_.allocateCommandBuffers(MAX_FRAMES_IN_FLIGHT);
 		std::vector<vk::raii::Semaphore> renderFinishedSemaphores_;

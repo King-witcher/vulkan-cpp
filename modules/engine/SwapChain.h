@@ -8,19 +8,19 @@ namespace gd
 	struct Frame
 	{
 	public:
-		vk::Semaphore getSemaphore() const { return *semaphore; }
+		vk::Semaphore getRenderReadySemaphore() const { return *renderReady; }
 		vk::Image getImage() const { return image; }
 		vk::ImageView getImageView() const { return *imageView; }
 
 	private:
 		Frame(u32 index, vk::Image image, vk::raii::ImageView imageView, vk::raii::Semaphore imageAvailableSemaphore)
-			: index(index), image(std::move(image)), imageView(std::move(imageView)), semaphore(std::move(imageAvailableSemaphore)) {}
+			: index(index), image(std::move(image)), imageView(std::move(imageView)), renderReady(std::move(imageAvailableSemaphore)) {}
 
 		u32 index;
 		vk::Image image;
 		vk::raii::ImageView imageView;
-		/** Indicates that the monitor has finished reading and the image is ready to be drawn by the GPU */
-		vk::raii::Semaphore semaphore;
+		/** Indicates that the renderer has finished rendering and the image is ready to be presented */
+		vk::raii::Semaphore renderReady;
 
 		friend class SwapChain;
 	};

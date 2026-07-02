@@ -140,7 +140,7 @@ void gd::SwapChain::recreate()
 void gd::SwapChain::present(gd::Frame &frame)
 {
 	vk::PresentInfoKHR presentInfo;
-	auto semaphore = *frame.semaphore;
+	auto semaphore = *frame.renderReady;
 	auto swapChain = *vkSwapChain_;
 	presentInfo.setWaitSemaphores(semaphore);
 	presentInfo.setSwapchains(swapChain);
