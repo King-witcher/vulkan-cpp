@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include "Input.h"
 using namespace std;
 
 vk::SurfaceFormatKHR chooseSwapSurfaceFormat(vector<vk::SurfaceFormatKHR> formats)
@@ -45,9 +46,64 @@ u32 chooseSwapImageCount(vk::SurfaceCapabilitiesKHR &capabilities)
 	return std::clamp(3u, capabilities.minImageCount, capabilities.maxImageCount);
 }
 
-vkwiz::SwapChain::SwapChain(Device &device, vk::raii::SurfaceKHR &surface, vk::SwapchainKHR oldSwapChain) : device_(device)
+gd::SwapChain::SwapChain(Device &device, vk::raii::SurfaceKHR &surface, vk::SwapchainKHR oldSwapChain)
+	: device_(device), surface_(surface)
 {
-	auto swapChainSupport = device.getSurfaceSupport(surface);
+	recreate();
+}
+
+gd::Frame &gd::SwapChain::acquireNextFrame(const vk::Semaphore semaphore)
+{
+	auto [aquireResult, index] = vkSwapChain_.acquireNextImage(UINT64_MAX, semaphore, nullptr);
+	switch (aquireResult)
+	{
+	case vk::Result::eErrorOutOfDateKHR:
+	case vk::Result::eSuboptimalKHR:
+		recreate();
+	case vk::Result::eSuccess:
+		break;
+	default:
+		panic("failed to acquire swap chain image.");
+	}
+
+	return frames_[index];
+}
+
+void gd::SwapChain::createFrames(std::vector<vk::Image> images)
+{
+	frames_.clear();
+	vk::ImageViewCreateInfo viewInfo;
+	viewInfo.setViewType(vk::ImageViewType::e2D);
+	viewInfo.setFormat(vkImageFormat_);
+	viewInfo.components.r = vk::ComponentSwizzle::eIdentity;
+	viewInfo.components.g = vk::ComponentSwizzle::eIdentity;
+	viewInfo.components.b = vk::ComponentSwizzle::eIdentity;
+	viewInfo.components.a = vk::ComponentSwizzle::eIdentity;
+	viewInfo.subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
+	viewInfo.subresourceRange.setBaseMipLevel(0);
+	viewInfo.subresourceRange.setLevelCount(1);
+	viewInfo.subresourceRange.setBaseArrayLayer(0);
+	viewInfo.subresourceRange.setLayerCount(1);
+
+	for (u32 i = 0; i < images.size(); i++)
+	{
+		viewInfo.setImage(images[i]);
+		auto createResult = device_.vkDevice().createImageView(viewInfo);
+		if (!createResult.has_value())
+			panic("failed to create image view");
+		auto semaphore = device_.createSemaphore();
+
+		frames_.push_back(gd::Frame(i, images[i], std::move(*createResult), std::move(semaphore)));
+	}
+}
+
+void gd::SwapChain::recreate()
+{
+	device_.waitIdle();
+	for (; input::minimized(); input::update())
+		;
+
+	auto swapChainSupport = device_.getSurfaceSupport(surface_);
 	auto format = chooseSwapSurfaceFormat(swapChainSupport.formats);
 	auto presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
 	extent_ = chooseSwapExtent(swapChainSupport.capabilities);
@@ -55,8 +111,8 @@ vkwiz::SwapChain::SwapChain(Device &device, vk::raii::SurfaceKHR &surface, vk::S
 	auto minImageCount = chooseSwapImageCount(swapChainSupport.capabilities);
 
 	vk::SwapchainCreateInfoKHR createInfo;
-	createInfo.setOldSwapchain(oldSwapChain);
-	createInfo.setSurface(surface); // used * before
+	createInfo.setOldSwapchain(vkSwapChain_);
+	createInfo.setSurface(surface_); // used * before
 	createInfo.setMinImageCount(minImageCount);
 	createInfo.setImageFormat(vkImageFormat_);
 	createInfo.setImageColorSpace(format.colorSpace);
@@ -68,11 +124,8 @@ vkwiz::SwapChain::SwapChain(Device &device, vk::raii::SurfaceKHR &surface, vk::S
 	createInfo.setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque);
 	createInfo.setPresentMode(presentMode);
 	createInfo.setClipped(vk::True); // Clips pixels that are obscured by other windows. However, this may cause blur effects to bug.
-	// swapChainCreateInfo.setOldSwapchain(VK_NULL_HANDLE);
 
-	auto &vkDevice = device.vkDevice();
-
-	auto createResult = vkDevice.createSwapchainKHR(createInfo);
+	auto createResult = device_.vkDevice().createSwapchainKHR(createInfo);
 	if (!createResult.has_value())
 		panic("failed to create swapchain.");
 	vkSwapChain_ = std::move(*createResult);
@@ -80,57 +133,19 @@ vkwiz::SwapChain::SwapChain(Device &device, vk::raii::SurfaceKHR &surface, vk::S
 	auto imagesResult = vkSwapChain_.getImages();
 	if (!imagesResult.has_value())
 		panic("failed to get swapchain images.");
-	vkImages_ = std::move(*imagesResult);
 
-	vkImageViews_ = createImageViews(vkDevice);
+	createFrames(*imagesResult);
 }
 
-std::tuple<bool, vk::Image, vk::ImageView, u32> vkwiz::SwapChain::acquireImage(const vk::Semaphore semaphore, const vk::Fence fence)
+void gd::SwapChain::present(gd::Frame &frame)
 {
-	auto [result, index] = vkSwapChain_.acquireNextImage(UINT64_MAX, semaphore, fence);
-	switch (result)
-	{
-	case vk::Result::eSuccess:
-		break;
-	case vk::Result::eErrorOutOfDateKHR:
-		std::cerr << "swap chain was out of date when acquiring image." << std::endl;
-		return {false, {}, {}, static_cast<u32>(0)};
-	case vk::Result::eSuboptimalKHR:
-		std::cerr << "swap chain was suboptimal when acquiring image." << std::endl;
-		return {false, {}, {}, static_cast<u32>(0)};
-	default:
-		panic("failed to acquire swap chain image.");
-	}
+	vk::PresentInfoKHR presentInfo;
+	auto semaphore = *frame.semaphore;
+	auto swapChain = *vkSwapChain_;
+	presentInfo.setWaitSemaphores(semaphore);
+	presentInfo.setSwapchains(swapChain);
+	presentInfo.setImageIndices(frame.index);
 
-	return {true, vkImages_[index], vkImageViews_[index], index};
-}
-
-std::vector<vk::raii::ImageView> vkwiz::SwapChain::createImageViews(vk::raii::Device &vkDevice)
-{
-	std::vector<vk::raii::ImageView> imageViews;
-	imageViews.reserve(vkImages_.size());
-
-	vk::ImageViewCreateInfo createInfo;
-	createInfo.setViewType(vk::ImageViewType::e2D);
-	createInfo.setFormat(vkImageFormat_);
-	createInfo.components.r = vk::ComponentSwizzle::eIdentity;
-	createInfo.components.g = vk::ComponentSwizzle::eIdentity;
-	createInfo.components.b = vk::ComponentSwizzle::eIdentity;
-	createInfo.components.a = vk::ComponentSwizzle::eIdentity;
-	createInfo.subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
-	createInfo.subresourceRange.setBaseMipLevel(0);
-	createInfo.subresourceRange.setLevelCount(1);
-	createInfo.subresourceRange.setBaseArrayLayer(0);
-	createInfo.subresourceRange.setLayerCount(1);
-
-	for (int i = 0; i < vkImages_.size(); i++)
-	{
-		createInfo.setImage(vkImages_[i]);
-		auto createResult = vkDevice.createImageView(createInfo);
-		if (!createResult.has_value())
-			panic("failed to create image view");
-		imageViews.push_back(std::move(*createResult));
-	}
-
-	return imageViews;
+	if (!device_.present(presentInfo))
+		recreate();
 }

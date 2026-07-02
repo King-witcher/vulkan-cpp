@@ -3,7 +3,7 @@
 
 int main()
 {
-	vkwiz::Engine engine;
+	gd::Engine engine;
 	engine.run();
 	return 0;
 }

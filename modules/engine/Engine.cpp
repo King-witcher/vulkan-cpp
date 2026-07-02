@@ -6,17 +6,17 @@
 #include <iostream>
 #include <memory>
 
-using namespace vkwiz;
+using namespace gd;
 
-void vkwiz::Engine::run()
+void gd::Engine::run()
 {
-	std::vector<vkwiz::Mesh::Vertex> vertices = {
-			{{0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-			{{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-			{{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+	std::vector<gd::Mesh::Vertex> vertices = {
+		{{0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+		{{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+		{{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
 	};
-	vkwiz::Mesh model(vertices);
-	auto dataSize = vertices.size() * sizeof(vkwiz::Mesh::Vertex);
+	gd::Mesh model(vertices);
+	auto dataSize = vertices.size() * sizeof(gd::Mesh::Vertex);
 	auto [buffer, mem] = device_.alloc(dataSize);
 	auto ptr = *mem.mapMemory(0, dataSize);
 	memcpy(ptr, vertices.data(), dataSize);
@@ -32,7 +32,7 @@ void vkwiz::Engine::run()
 	std::cout << "Exiting engine loop." << std::endl;
 }
 
-vk::raii::Instance vkwiz::Engine::createInstance() const
+vk::raii::Instance gd::Engine::createInstance() const
 {
 	vk::ApplicationInfo appInfo;
 	appInfo.setPApplicationName("VkWizard");
@@ -60,7 +60,7 @@ vk::raii::Instance vkwiz::Engine::createInstance() const
 	return instance;
 }
 
-void vkwiz::Engine::createSyncObjects()
+void gd::Engine::createSyncObjects()
 {
 	auto &vkDevice = device_.vkDevice();
 	auto imageCount = swapChain_->imageCount();
@@ -83,57 +83,57 @@ void vkwiz::Engine::createSyncObjects()
 }
 
 void transition_image_layout(
-		vk::raii::CommandBuffer &commandBuffer,
-		vk::Image image,
-		vk::ImageLayout oldLayout,
-		vk::ImageLayout newLayout,
-		vk::AccessFlags2 srcAccessMask,
-		vk::AccessFlags2 dstAccessMask,
-		vk::PipelineStageFlags2 srcStageMask,
-		vk::PipelineStageFlags2 dstStageMask)
+	vk::raii::CommandBuffer &commandBuffer,
+	vk::Image image,
+	vk::ImageLayout oldLayout,
+	vk::ImageLayout newLayout,
+	vk::AccessFlags2 srcAccessMask,
+	vk::AccessFlags2 dstAccessMask,
+	vk::PipelineStageFlags2 srcStageMask,
+	vk::PipelineStageFlags2 dstStageMask)
 {
 	vk::ImageMemoryBarrier2 barrier = {
-			.srcStageMask = srcStageMask,
-			.srcAccessMask = srcAccessMask,
-			.dstStageMask = dstStageMask,
-			.dstAccessMask = dstAccessMask,
-			.oldLayout = oldLayout,
-			.newLayout = newLayout,
-			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			.image = image,
-			.subresourceRange = {
-					.aspectMask = vk::ImageAspectFlagBits::eColor,
-					.baseMipLevel = 0,
-					.levelCount = 1,
-					.baseArrayLayer = 0,
-					.layerCount = 1}};
+		.srcStageMask = srcStageMask,
+		.srcAccessMask = srcAccessMask,
+		.dstStageMask = dstStageMask,
+		.dstAccessMask = dstAccessMask,
+		.oldLayout = oldLayout,
+		.newLayout = newLayout,
+		.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.image = image,
+		.subresourceRange = {
+			.aspectMask = vk::ImageAspectFlagBits::eColor,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1}};
 	vk::DependencyInfo dependencyInfo = {
-			.dependencyFlags = {},
-			.imageMemoryBarrierCount = 1,
-			.pImageMemoryBarriers = &barrier};
+		.dependencyFlags = {},
+		.imageMemoryBarrierCount = 1,
+		.pImageMemoryBarriers = &barrier};
 	commandBuffer.pipelineBarrier2(dependencyInfo);
 }
 
-void vkwiz::Engine::recordCommandBuffer(
-		vk::raii::CommandBuffer &commandBuffer,
-		vk::Image image,
-		vk::ImageView imageView,
-		vk::raii::Buffer &vertexBuffer,
-		u32 vertices)
+void gd::Engine::recordCommandBuffer(
+	vk::raii::CommandBuffer &commandBuffer,
+	vk::Image image,
+	vk::ImageView imageView,
+	vk::raii::Buffer &vertexBuffer,
+	u32 vertices)
 {
 	auto extent = swapChain_->extent();
 	commandBuffer.begin({});
 
 	transition_image_layout(
-			commandBuffer,
-			image,
-			vk::ImageLayout::eUndefined,
-			vk::ImageLayout::eColorAttachmentOptimal,
-			{},
-			vk::AccessFlagBits2::eColorAttachmentWrite,
-			vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-			vk::PipelineStageFlagBits2::eColorAttachmentOutput);
+		commandBuffer,
+		image,
+		vk::ImageLayout::eUndefined,
+		vk::ImageLayout::eColorAttachmentOptimal,
+		{},
+		vk::AccessFlagBits2::eColorAttachmentWrite,
+		vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+		vk::PipelineStageFlagBits2::eColorAttachmentOutput);
 
 	vk::RenderingAttachmentInfo colorAtt{};
 	colorAtt.setImageView(imageView);
@@ -154,64 +154,60 @@ void vkwiz::Engine::recordCommandBuffer(
 	commandBuffer.bindVertexBuffers(0, *vertexBuffer, {0}); // See v2
 
 	commandBuffer.setViewport(
-			0,
-			vk::Viewport(
-					0.0f,
-					0.0f,
-					static_cast<f32>(extent.width),
-					static_cast<f32>(extent.height),
-					0.0f,
-					1.0f));
+		0,
+		vk::Viewport(
+			0.0f,
+			0.0f,
+			static_cast<f32>(extent.width),
+			static_cast<f32>(extent.height),
+			0.0f,
+			1.0f));
 
 	commandBuffer.setScissor(
-			0,
-			vk::Rect2D{
-					.offset = vk::Offset2D{0, 0},
-					.extent = extent});
+		0,
+		vk::Rect2D{
+			.offset = vk::Offset2D{0, 0},
+			.extent = extent});
 
 	commandBuffer.draw(vertices, 1, 0, 0);
 
 	commandBuffer.endRendering();
 
 	transition_image_layout(
-			commandBuffer,
-			image,
-			vk::ImageLayout::eColorAttachmentOptimal,
-			vk::ImageLayout::ePresentSrcKHR,
-			vk::AccessFlagBits2::eColorAttachmentWrite,
-			{},
-			vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-			vk::PipelineStageFlagBits2::eBottomOfPipe);
+		commandBuffer,
+		image,
+		vk::ImageLayout::eColorAttachmentOptimal,
+		vk::ImageLayout::ePresentSrcKHR,
+		vk::AccessFlagBits2::eColorAttachmentWrite,
+		{},
+		vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+		vk::PipelineStageFlagBits2::eBottomOfPipe);
 
 	commandBuffer.end();
 }
 
-void vkwiz::Engine::recreateSwapChain()
+// TODO: Handle swapchain recreation inside SwapChain class.
+void gd::Engine::recreateSwapChain()
 {
+	device_.vkDevice().waitIdle();
 	for (; input::minimized(); input::update())
 		;
-
-	device_.vkDevice().waitIdle();
 	swapChain_ = std::make_unique<SwapChain>(device_, vkSurface_, *swapChain_->vkSwapChain());
 }
 
-void vkwiz::Engine::draw(vk::raii::Buffer &vertexBuffer, u32 vertices)
+void gd::Engine::draw(vk::raii::Buffer &vertexBuffer, u32 vertices)
 {
 	device_.waitForFence(inFlightFences_[frameIndex_]);
-	auto [success, image, imageView, imageIndex] = swapChain_->acquireImage(presentCompleteSemaphores_[frameIndex_], nullptr);
-	if (!success)
-	{
-		recreateSwapChain();
-		return;
-	}
+	auto presentCompleteSemaphore = *presentCompleteSemaphores_[frameIndex_];
+	auto &frame = swapChain_->acquireNextFrame(*presentCompleteSemaphores_[frameIndex_]);
 	device_.resetFence(inFlightFences_[frameIndex_]);
 
 	vkCommandbuffers_[frameIndex_].reset();
 
-	recordCommandBuffer(vkCommandbuffers_[frameIndex_], image, imageView, vertexBuffer, vertices);
+	recordCommandBuffer(vkCommandbuffers_[frameIndex_], frame.getImage(), frame.getImageView(), vertexBuffer, vertices);
 
 	auto presentSemaphore = *presentCompleteSemaphores_[frameIndex_];
-	auto renderSemaphore = *renderFinishedSemaphores_[imageIndex];
+	auto renderSemaphore = frame.getSemaphore();
 	auto commandBuffer = *vkCommandbuffers_[frameIndex_];
 
 	// Render
@@ -225,23 +221,19 @@ void vkwiz::Engine::draw(vk::raii::Buffer &vertexBuffer, u32 vertices)
 	device_.submitGraphics(submitInfo, *inFlightFences_[frameIndex_]);
 
 	// Present
-	auto &vkSwapChain = swapChain_->vkSwapChain();
+	swapChain_->present(frame);
 
-	vk::PresentInfoKHR presentInfo{};
-	presentInfo.setWaitSemaphores({renderSemaphore});
-	presentInfo.setSwapchains({*vkSwapChain});
-	presentInfo.setImageIndices({imageIndex});
-
-	if (!device_.present(presentInfo))
-	{
-		std::cout << "Recreating swap chain..." << std::endl;
-		recreateSwapChain();
-		return;
-	}
 	frameIndex_ = (frameIndex_ + 1) % MAX_FRAMES_IN_FLIGHT;
 }
+// skipping swapchain recreation for now
+// else
+// {
+// 	recreateSwapChain();
+// 	return;
+// }
+// }
 
-vkwiz::Engine::Engine()
+gd::Engine::Engine()
 {
 	window_.setPosition(-1400, 200);
 	// auto windowExtent = window_.extent();

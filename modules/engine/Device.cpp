@@ -7,7 +7,7 @@
 #include <iostream>
 #include <format>
 
-using namespace vkwiz;
+using namespace gd;
 
 std::array REQUIRED_EXTENSIONS = {
 	vk::KHRShaderDrawParametersExtensionName,
@@ -114,7 +114,7 @@ vk::raii::CommandPool createCommandPool(vk::raii::Device &vkDevice, u32 graphics
 	panic("failed to create command pool");
 }
 
-vkwiz::Device::Device(vk::raii::Instance &instance, vk::raii::SurfaceKHR &surface)
+gd::Device::Device(vk::raii::Instance &instance, vk::raii::SurfaceKHR &surface)
 {
 	vkPhysicalDevice_ = pickPhysicalDevice(instance);
 	auto graphicsIndex = findGraphicsQueueFamily(vkPhysicalDevice_);
@@ -133,7 +133,7 @@ vkwiz::Device::Device(vk::raii::Instance &instance, vk::raii::SurfaceKHR &surfac
 }
 
 /** Gets information about the surface support for the physical device */
-SurfaceSupport vkwiz::Device::getSurfaceSupport(vk::raii::SurfaceKHR &surface)
+SurfaceSupport gd::Device::getSurfaceSupport(vk::SurfaceKHR surface)
 {
 	auto capabilities = vkPhysicalDevice_.getSurfaceCapabilitiesKHR(surface);
 	auto formats = vkPhysicalDevice_.getSurfaceFormatsKHR(surface);
@@ -153,22 +153,22 @@ SurfaceSupport vkwiz::Device::getSurfaceSupport(vk::raii::SurfaceKHR &surface)
 	};
 }
 
-void vkwiz::Device::resetFence(vk::raii::Fence &fence)
+void gd::Device::resetFence(vk::raii::Fence &fence)
 {
 	vkDevice_.resetFences(*fence);
 }
 
-vk::Result vkwiz::Device::waitForFence(vk::raii::Fence &fence)
+vk::Result gd::Device::waitForFence(vk::raii::Fence &fence)
 {
 	return vkDevice_.waitForFences(*fence, vk::True, UINT64_MAX);
 }
 
-void vkwiz::Device::submitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence)
+void gd::Device::submitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence)
 {
 	vkGraphicsQueue_.submit(submitInfo, fence);
 }
 
-bool vkwiz::Device::present(vk::PresentInfoKHR &presentInfo)
+bool gd::Device::present(vk::PresentInfoKHR &presentInfo)
 {
 	auto result = vkPresentQueue_.presentKHR(presentInfo);
 	switch (result)
@@ -186,7 +186,7 @@ bool vkwiz::Device::present(vk::PresentInfoKHR &presentInfo)
 	}
 }
 
-std::vector<vk::raii::CommandBuffer> vkwiz::Device::allocateCommandBuffers(u32 count) const
+std::vector<vk::raii::CommandBuffer> gd::Device::allocateCommandBuffers(u32 count) const
 {
 	vk::CommandBufferAllocateInfo allocateInfo{
 		.commandPool = vkCommandPool_,
@@ -196,19 +196,19 @@ std::vector<vk::raii::CommandBuffer> vkwiz::Device::allocateCommandBuffers(u32 c
 	return std::move(*vkDevice_.allocateCommandBuffers(allocateInfo));
 }
 
-vk::raii::Semaphore vkwiz::Device::createSemaphore() const
+vk::raii::Semaphore gd::Device::createSemaphore() const
 {
 	return std::move(*vkDevice_.createSemaphore({}));
 }
 
-vk::raii::Fence vkwiz::Device::createFence(bool signaled) const
+vk::raii::Fence gd::Device::createFence(bool signaled) const
 {
 	return std::move(*vkDevice_.createFence({
 		.flags = signaled ? vk::FenceCreateFlagBits::eSignaled : vk::FenceCreateFlags{},
 	}));
 }
 
-vk::raii::ShaderModule vkwiz::Device::createShaderModule(const std::vector<u8> code) const
+vk::raii::ShaderModule gd::Device::createShaderModule(const std::vector<u8> code) const
 {
 	vk::ShaderModuleCreateInfo createInfo{
 		.codeSize = code.size(),
@@ -217,7 +217,7 @@ vk::raii::ShaderModule vkwiz::Device::createShaderModule(const std::vector<u8> c
 	return std::move(*vkDevice_.createShaderModule(createInfo));
 }
 
-std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> vkwiz::Device::alloc(usize size)
+std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> gd::Device::alloc(usize size)
 {
 	// Create buffer
 	vk::BufferCreateInfo bufferInfo;
@@ -252,7 +252,7 @@ std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> vkwiz::Device::alloc(usize 
 
 // Existem heaps diferentes como VRAM e espaço de swap na RAM pra quando a VRAM acaba. São heaps diferentes.
 // Dentro de cada heap, existem tipos diferentes de memória.
-u32 vkwiz::Device::findMemoryType(u32 supportedTypes, vk::MemoryPropertyFlags properties)
+u32 gd::Device::findMemoryType(u32 supportedTypes, vk::MemoryPropertyFlags properties)
 {
 	auto memProps = vkPhysicalDevice_.getMemoryProperties2();
 	for (u32 i = 0; i < memProps.memoryProperties.memoryTypeCount; i++)

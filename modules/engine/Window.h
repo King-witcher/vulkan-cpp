@@ -6,7 +6,7 @@
 #include <SDL3/SDL.h>
 #include <span>
 
-namespace vkwiz
+namespace gd
 {
 	class Window
 	{

@@ -5,7 +5,7 @@
 
 #include <vector>
 
-namespace vkwiz
+namespace gd
 {
   class Mesh
   {

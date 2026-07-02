@@ -8,13 +8,14 @@
 #include <string>
 #include <vector>
 
-namespace vkwiz {
+namespace gd
+{
 	class Pipeline
 	{
 	public:
-		Pipeline(Device& device, vkwiz::SwapChain& swapchain, std::string shaderPath);
+		Pipeline(Device &device, gd::SwapChain &swapchain, std::string shaderPath);
 
-		vk::raii::Pipeline& vkPipeline() { return vkPipeline_; }
+		vk::raii::Pipeline &vkPipeline() { return vkPipeline_; }
 
 	private:
 		vk::raii::ShaderModule vkShaderModule_ = nullptr;

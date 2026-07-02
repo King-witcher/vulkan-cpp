@@ -8,7 +8,7 @@
 
 #include <vector>
 
-namespace vkwiz
+namespace gd
 {
 	const u32 MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -37,11 +37,11 @@ namespace vkwiz
 		vk::raii::Instance createInstance() const;
 		void createSyncObjects();
 		void recordCommandBuffer(
-				vk::raii::CommandBuffer &commandBuffer,
-				vk::Image image,
-				vk::ImageView imageView,
-				vk::raii::Buffer &vertexBuffer,
-				u32 vertices);
+			vk::raii::CommandBuffer &commandBuffer,
+			vk::Image image,
+			vk::ImageView imageView,
+			vk::raii::Buffer &vertexBuffer,
+			u32 vertices);
 		void recreateSwapChain();
 		void draw(vk::raii::Buffer &vertexBuffer, u32 vertices);
 	};

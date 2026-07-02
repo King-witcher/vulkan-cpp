@@ -2,3 +2,4 @@ bin
 build
 CMakeFiles
 *.spv
+.vs

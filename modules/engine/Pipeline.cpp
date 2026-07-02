@@ -19,7 +19,7 @@ static vector<u8> readFile(const string &filename)
 	return buffer;
 }
 
-vkwiz::Pipeline::Pipeline(Device &device, vkwiz::SwapChain &swapchain, std::string shaderPath)
+gd::Pipeline::Pipeline(Device &device, gd::SwapChain &swapchain, std::string shaderPath)
 {
 	auto &vkDevice = device.vkDevice();
 	auto shaderCode = readFile(shaderPath);
@@ -50,8 +50,8 @@ vkwiz::Pipeline::Pipeline(Device &device, vkwiz::SwapChain &swapchain, std::stri
 	//};
 	vk::PipelineDynamicStateCreateInfo dynamicState;
 	std::vector dynamicStates = {
-			vk::DynamicState::eViewport,
-			vk::DynamicState::eScissor,
+		vk::DynamicState::eViewport,
+		vk::DynamicState::eScissor,
 	};
 	dynamicState.setDynamicStates(dynamicStates);
 
@@ -76,8 +76,8 @@ vkwiz::Pipeline::Pipeline(Device &device, vkwiz::SwapChain &swapchain, std::stri
 	vk::PipelineColorBlendAttachmentState colorBlendAttachment;
 	colorBlendAttachment.setBlendEnable(vk::False);
 	colorBlendAttachment.setColorWriteMask(
-			vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-			vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
+		vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+		vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
 	vk::PipelineColorBlendStateCreateInfo colorBlending;
 	colorBlending.setLogicOpEnable(vk::False);
 	colorBlending.setLogicOp(vk::LogicOp::eCopy);
@@ -94,16 +94,16 @@ vkwiz::Pipeline::Pipeline(Device &device, vkwiz::SwapChain &swapchain, std::stri
 
 	// Final pipeline create info
 	std::vector<vk::PipelineShaderStageCreateInfo> stages = {
-			{
-					.stage = vk::ShaderStageFlagBits::eVertex,
-					.module = *vkShaderModule_,
-					.pName = "vertMain",
-			},
-			{
-					.stage = vk::ShaderStageFlagBits::eFragment,
-					.module = *vkShaderModule_,
-					.pName = "fragMain",
-			}};
+		{
+			.stage = vk::ShaderStageFlagBits::eVertex,
+			.module = *vkShaderModule_,
+			.pName = "vertMain",
+		},
+		{
+			.stage = vk::ShaderStageFlagBits::eFragment,
+			.module = *vkShaderModule_,
+			.pName = "fragMain",
+		}};
 	vk::GraphicsPipelineCreateInfo pipelineInfo;
 	pipelineInfo.setPNext(&pipelineRenderingInfo);
 	pipelineInfo.setStages(stages);

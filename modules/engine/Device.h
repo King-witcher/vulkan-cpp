@@ -3,7 +3,7 @@
 #include <vulkan/vulkan_raii.hpp>
 #include "RustTypes.h"
 
-namespace vkwiz
+namespace gd
 {
 	struct SurfaceSupport
 	{
@@ -17,7 +17,7 @@ namespace vkwiz
 	public:
 		Device(vk::raii::Instance &instance, vk::raii::SurfaceKHR &surface);
 
-		SurfaceSupport getSurfaceSupport(vk::raii::SurfaceKHR &surface);
+		SurfaceSupport getSurfaceSupport(vk::SurfaceKHR surface);
 		void resetFence(vk::raii::Fence &fence);
 		vk::Result waitForFence(vk::raii::Fence &fence);
 		void submitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence);
@@ -30,6 +30,7 @@ namespace vkwiz
 		vk::raii::Device &vkDevice() { return vkDevice_; }
 		vk::raii::CommandPool &vkCommandPool() { return vkCommandPool_; }
 		std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> alloc(usize size);
+		void waitIdle() const { vkDevice_.waitIdle(); }
 
 	private:
 		u32 findMemoryType(u32 typeFilter, vk::MemoryPropertyFlags properties);
