@@ -1,10 +1,10 @@
+#include <iostream>
+#include <memory>
+
 #include "Engine.h"
 #include "RustTypes.h"
 #include "Input.h"
 #include "Mesh.h"
-
-#include <iostream>
-#include <memory>
 
 using namespace gd;
 
@@ -58,22 +58,6 @@ vk::raii::Instance gd::Engine::createInstance() const
 	auto instance = std::move(*vkContext_.createInstance(createInfo));
 	std::cout << "Vulkan instance created." << std::endl;
 	return instance;
-}
-
-void gd::Engine::createSyncObjects()
-{
-	auto &vkDevice = device_.vkDevice();
-	// auto imageCount = swapChain_->imageCount();
-	auto fenceCreateInfo = vk::FenceCreateInfo{};
-	fenceCreateInfo.setFlags(vk::FenceCreateFlagBits::eSignaled);
-
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		auto presentSemaphore = std::move(*vkDevice.createSemaphore({}));
-		auto fence = std::move(*vkDevice.createFence(fenceCreateInfo));
-		presentCompleteSemaphores_.push_back(std::move(presentSemaphore));
-		inFlightFences_.push_back(std::move(fence));
-	}
 }
 
 void transition_image_layout(
@@ -182,29 +166,29 @@ void gd::Engine::recordCommandBuffer(
 
 void gd::Engine::draw(vk::raii::Buffer &vertexBuffer, u32 vertices)
 {
-	device_.waitForFence(inFlightFences_[inFlightIndex]);
-	auto presentReady = *presentCompleteSemaphores_[inFlightIndex];
-	auto &frame = swapChain_->acquireNextImage(presentReady);
-	device_.resetFence(inFlightFences_[inFlightIndex]);
+	auto &frame = frames[inFlightIndex];
 
-	vkCommandbuffers_[inFlightIndex].reset();
+	device_.waitForFence(frame.inFlightFence);
+	auto &presentReady = frame.presentReady;
+	auto &image = swapChain_->acquireNextImage(presentReady);
+	device_.resetFence(frame.inFlightFence);
+	frame.commandBuffer.reset();
 
-	recordCommandBuffer(vkCommandbuffers_[inFlightIndex], frame.getImage(), frame.getImageView(), vertexBuffer, vertices);
+	recordCommandBuffer(frame.commandBuffer, image.getImage(), image.getImageView(), vertexBuffer, vertices);
 
-	auto renderReady = frame.getRenderReadySemaphore();
-	auto commandBuffer = *vkCommandbuffers_[inFlightIndex];
+	auto renderReady = image.getRenderReadySemaphore();
 
 	// Render
 	vk::SubmitInfo submitInfo{};
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 	submitInfo.setWaitDstStageMask(waitDestinationStageMask);
-	submitInfo.setWaitSemaphores(presentReady);
-	submitInfo.setCommandBuffers(commandBuffer);
+	submitInfo.setWaitSemaphores(*presentReady);
+	submitInfo.setCommandBuffers(*frame.commandBuffer);
 	submitInfo.setSignalSemaphores(renderReady);
-	device_.submitGraphics(submitInfo, *inFlightFences_[inFlightIndex]);
+	device_.submitGraphics(submitInfo, frame.inFlightFence);
 
 	// Present
-	swapChain_->present(frame);
+	swapChain_->present(image);
 
 	inFlightIndex = (inFlightIndex + 1) % MAX_FRAMES_IN_FLIGHT;
 }
@@ -212,6 +196,4 @@ void gd::Engine::draw(vk::raii::Buffer &vertexBuffer, u32 vertices)
 gd::Engine::Engine()
 {
 	window_.setPosition(-1400, 200);
-	// auto windowExtent = window_.extent();
-	createSyncObjects();
 }
