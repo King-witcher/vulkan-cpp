@@ -35,7 +35,7 @@ namespace gd
 		vk::raii::Instance vkInstance_ = createInstance();
 		vk::raii::SurfaceKHR vkSurface_ = window_.getVulkanSurface(vkInstance_);
 		Device device_{vkInstance_, vkSurface_};
-		std::unique_ptr<SwapChain> swapChain_ = std::make_unique<SwapChain>(device_, vkSurface_);
+		std::unique_ptr<Swapchain> swapChain_ = std::make_unique<Swapchain>(device_, vkSurface_);
 		Pipeline pipeline_ = {device_, *swapChain_, "shaders/shader.spv"};
 		u32 inFlightIndex = 0;
 

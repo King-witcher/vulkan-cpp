@@ -19,7 +19,7 @@ static vector<u8> readFile(const string &filename)
 	return buffer;
 }
 
-gd::Pipeline::Pipeline(Device &device, gd::SwapChain &swapchain, std::string shaderPath)
+gd::Pipeline::Pipeline(Device &device, gd::Swapchain &swapchain, std::string shaderPath)
 {
 	auto &vkDevice = device.vkDevice();
 	auto shaderCode = readFile(shaderPath);

@@ -184,7 +184,7 @@ void gd::Engine::draw(vk::raii::Buffer &vertexBuffer, u32 vertices)
 {
 	device_.waitForFence(inFlightFences_[inFlightIndex]);
 	auto presentReady = *presentCompleteSemaphores_[inFlightIndex];
-	auto &frame = swapChain_->acquireNextFrame(presentReady);
+	auto &frame = swapChain_->acquireNextImage(presentReady);
 	device_.resetFence(inFlightFences_[inFlightIndex]);
 
 	vkCommandbuffers_[inFlightIndex].reset();

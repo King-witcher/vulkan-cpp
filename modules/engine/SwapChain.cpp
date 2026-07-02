@@ -46,13 +46,13 @@ u32 chooseSwapImageCount(vk::SurfaceCapabilitiesKHR &capabilities)
 	return std::clamp(3u, capabilities.minImageCount, capabilities.maxImageCount);
 }
 
-gd::SwapChain::SwapChain(Device &device, vk::raii::SurfaceKHR &surface, vk::SwapchainKHR oldSwapChain)
+gd::Swapchain::Swapchain(Device &device, vk::raii::SurfaceKHR &surface, vk::SwapchainKHR oldSwapChain)
 	: device_(device), surface_(surface)
 {
 	recreate();
 }
 
-gd::Frame &gd::SwapChain::acquireNextFrame(const vk::Semaphore semaphore)
+gd::SwapchainImage &gd::Swapchain::acquireNextImage(const vk::Semaphore semaphore)
 {
 	auto [aquireResult, index] = vkSwapChain_.acquireNextImage(UINT64_MAX, semaphore, nullptr);
 	switch (aquireResult)
@@ -69,7 +69,7 @@ gd::Frame &gd::SwapChain::acquireNextFrame(const vk::Semaphore semaphore)
 	return frames_[index];
 }
 
-void gd::SwapChain::createFrames(std::vector<vk::Image> images)
+void gd::Swapchain::createFrames(std::vector<vk::Image> images)
 {
 	frames_.clear();
 	vk::ImageViewCreateInfo viewInfo;
@@ -93,11 +93,11 @@ void gd::SwapChain::createFrames(std::vector<vk::Image> images)
 			panic("failed to create image view");
 		auto semaphore = device_.createSemaphore();
 
-		frames_.push_back(gd::Frame(i, images[i], std::move(*createResult), std::move(semaphore)));
+		frames_.push_back(gd::SwapchainImage(i, images[i], std::move(*createResult), std::move(semaphore)));
 	}
 }
 
-void gd::SwapChain::recreate()
+void gd::Swapchain::recreate()
 {
 	device_.waitIdle();
 	for (; input::minimized(); input::update())
@@ -137,7 +137,7 @@ void gd::SwapChain::recreate()
 	createFrames(*imagesResult);
 }
 
-void gd::SwapChain::present(gd::Frame &frame)
+void gd::Swapchain::present(gd::SwapchainImage &frame)
 {
 	vk::PresentInfoKHR presentInfo;
 	auto semaphore = *frame.renderReady;

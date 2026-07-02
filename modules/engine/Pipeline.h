@@ -13,7 +13,7 @@ namespace gd
 	class Pipeline
 	{
 	public:
-		Pipeline(Device &device, gd::SwapChain &swapchain, std::string shaderPath);
+		Pipeline(Device &device, gd::Swapchain &swapchain, std::string shaderPath);
 
 		vk::raii::Pipeline &vkPipeline() { return vkPipeline_; }
 

@@ -5,7 +5,7 @@
 
 namespace gd
 {
-	struct Frame
+	struct SwapchainImage
 	{
 	public:
 		vk::Semaphore getRenderReadySemaphore() const { return *renderReady; }
@@ -13,7 +13,7 @@ namespace gd
 		vk::ImageView getImageView() const { return *imageView; }
 
 	private:
-		Frame(u32 index, vk::Image image, vk::raii::ImageView imageView, vk::raii::Semaphore imageAvailableSemaphore)
+		SwapchainImage(u32 index, vk::Image image, vk::raii::ImageView imageView, vk::raii::Semaphore imageAvailableSemaphore)
 			: index(index), image(std::move(image)), imageView(std::move(imageView)), renderReady(std::move(imageAvailableSemaphore)) {}
 
 		u32 index;
@@ -22,21 +22,21 @@ namespace gd
 		/** Indicates that the renderer has finished rendering and the image is ready to be presented */
 		vk::raii::Semaphore renderReady;
 
-		friend class SwapChain;
+		friend class Swapchain;
 	};
 
-	class SwapChain
+	class Swapchain
 	{
 	public:
-		SwapChain(Device &device, vk::raii::SurfaceKHR &surface, vk::SwapchainKHR oldSwapChain = nullptr);
+		Swapchain(Device &device, vk::raii::SurfaceKHR &surface, vk::SwapchainKHR oldSwapChain = nullptr);
 
-		Frame &acquireNextFrame(const vk::Semaphore semaphore);
+		SwapchainImage &acquireNextImage(const vk::Semaphore semaphore);
 
 		vk::Format imageFormat() const { return vkImageFormat_; }
 		vk::Extent2D extent() const { return extent_; }
 		vk::raii::SwapchainKHR &vkSwapChain() { return vkSwapChain_; }
 		vk::SwapchainKHR operator*() const { return *vkSwapChain_; }
-		void present(gd::Frame &frame);
+		void present(gd::SwapchainImage &frame);
 
 	private:
 		Device &device_;
@@ -44,7 +44,7 @@ namespace gd
 		vk::Format vkImageFormat_;
 		vk::Extent2D extent_;
 		vk::raii::SwapchainKHR vkSwapChain_ = nullptr;
-		std::vector<Frame> frames_;
+		std::vector<SwapchainImage> frames_;
 
 		void createFrames(std::vector<vk::Image> images);
 
