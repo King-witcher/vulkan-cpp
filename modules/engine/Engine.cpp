@@ -67,12 +67,6 @@ void gd::Engine::createSyncObjects()
 	auto fenceCreateInfo = vk::FenceCreateInfo{};
 	fenceCreateInfo.setFlags(vk::FenceCreateFlagBits::eSignaled);
 
-	// for (size_t i = 0; i < imageCount; i++)
-	// {
-	// 	auto semaphore = std::move(*vkDevice.createSemaphore({}));
-	// 	renderFinishedSemaphores_.push_back(std::move(semaphore));
-	// }
-
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		auto presentSemaphore = std::move(*vkDevice.createSemaphore({}));
@@ -184,15 +178,6 @@ void gd::Engine::recordCommandBuffer(
 		vk::PipelineStageFlagBits2::eBottomOfPipe);
 
 	commandBuffer.end();
-}
-
-// TODO: Handle swapchain recreation inside SwapChain class.
-void gd::Engine::recreateSwapChain()
-{
-	device_.vkDevice().waitIdle();
-	for (; input::minimized(); input::update())
-		;
-	swapChain_ = std::make_unique<SwapChain>(device_, vkSurface_, *swapChain_->vkSwapChain());
 }
 
 void gd::Engine::draw(vk::raii::Buffer &vertexBuffer, u32 vertices)
