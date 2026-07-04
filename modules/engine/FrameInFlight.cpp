@@ -1,6 +1,6 @@
-#include "Frame.h"
+#include "FrameInFlight.h"
 
-gd::Frame::Frame(gd::Device &device)
+gd::FrameInFlight::FrameInFlight(gd::Device &device)
 {
     auto commandBuffers = device.allocateCommandBuffers(1);
     commandBuffer = std::move(commandBuffers[0]);

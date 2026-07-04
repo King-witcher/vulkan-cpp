@@ -6,16 +6,17 @@
 
 namespace gd
 {
-    class Frame
+    class FrameInFlight
     {
         friend class Engine;
         friend class Renderer;
+        friend class RenderFrame;
 
     private:
-        Frame(gd::Device &device);
+        FrameInFlight(gd::Device &device);
 
         vk::raii::CommandBuffer commandBuffer = nullptr;
         vk::raii::Semaphore presentReady = nullptr;
         vk::raii::Fence fence = nullptr;
     };
-}
+} // namespace gd

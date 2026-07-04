@@ -2,19 +2,40 @@
 
 #include <vulkan/vulkan_raii.hpp>
 
-#include "Frame.h"
+#include "FrameInFlight.h"
 #include "Device.h"
 #include "SwapChain.h"
 #include "Pipeline.h"
-#include "Frame.h"
+#include "vulkan/vulkan.hpp"
 
 namespace gd
 {
-    class Renderer
+    class RenderFrame
     {
+        friend class Renderer;
 
     public:
-        Renderer(gd::Device &device);
+        void draw(vk::raii::Buffer &vertexBuffer, u32 count, gd::Pipeline &pipeline);
+
+    private:
+        RenderFrame(gd::FrameInFlight &frameInFlight, gd::SwapchainImage &swapchainImage) : frameInFlight(frameInFlight), swapchainImage(swapchainImage) {}
+
+        void beginRendering(vk::Extent2D extent);
+        void transitionRendering();
+        void endRendering();
+        void transitionPresentation();
+
+        gd::FrameInFlight &frameInFlight;
+        gd::SwapchainImage &swapchainImage;
+    };
+
+    class Renderer
+    {
+    public:
+        Renderer(gd::Device &device, gd::Swapchain &swapchain, gd::Pipeline &pipeline) : device(device), swapchain(swapchain), pipeline(pipeline) {}
+
+        gd::RenderFrame beginFrame();
+        void endFrame(gd::RenderFrame &frame);
 
     private:
         static const u32 MAX_FRAMES_IN_FLIGHT = 2;
@@ -23,8 +44,9 @@ namespace gd
         gd::Swapchain &swapchain;
         gd::Pipeline &pipeline;
 
-        std::array<gd::Frame, MAX_FRAMES_IN_FLIGHT> frames = {
-            gd::Frame(device),
-            gd::Frame(device)};
+        std::array<gd::FrameInFlight, MAX_FRAMES_IN_FLIGHT> frames = {
+            gd::FrameInFlight(device),
+            gd::FrameInFlight(device)};
+        u32 currentFrame = 0;
     };
-}
+} // namespace gd
