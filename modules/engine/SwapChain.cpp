@@ -66,12 +66,12 @@ gd::SwapchainImage &gd::Swapchain::acquireNextImage(const vk::Semaphore semaphor
 		panic("failed to acquire swap chain image.");
 	}
 
-	return frames_[index];
+	return swapchainImages[index];
 }
 
-void gd::Swapchain::createFrames(std::vector<vk::Image> images)
+void gd::Swapchain::createImages(std::vector<vk::Image> images)
 {
-	frames_.clear();
+	swapchainImages.clear();
 	vk::ImageViewCreateInfo viewInfo;
 	viewInfo.setViewType(vk::ImageViewType::e2D);
 	viewInfo.setFormat(vkImageFormat_);
@@ -93,7 +93,7 @@ void gd::Swapchain::createFrames(std::vector<vk::Image> images)
 			panic("failed to create image view");
 		auto semaphore = device_.createSemaphore();
 
-		frames_.push_back(gd::SwapchainImage(i, images[i], std::move(*createResult), std::move(semaphore)));
+		swapchainImages.push_back(gd::SwapchainImage(i, images[i], std::move(*createResult), std::move(semaphore)));
 	}
 }
 
@@ -134,7 +134,7 @@ void gd::Swapchain::recreate()
 	if (!imagesResult.has_value())
 		panic("failed to get swapchain images.");
 
-	createFrames(*imagesResult);
+	createImages(*imagesResult);
 }
 
 void gd::Swapchain::present(gd::SwapchainImage &frame)

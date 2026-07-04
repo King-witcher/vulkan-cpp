@@ -8,8 +8,23 @@
 # cxx_std_26, FindVulkan moderno) e é mais portável do que exigir a 4.x.
 cmake_minimum_required(VERSION 3.28)
 
+# Usa o clang++ ao invés de MSVC ou MinGW.
+# IMPORTANTE: precisa vir ANTES do project(). É o project() que dispara a
+# detecção/validação do compilador (enable_language). Definir CMAKE_CXX_COMPILER
+# depois do project() é ignorado no projeto raiz e ainda quebra quando um
+# subprojeto (SDL3) chama enable_language() de novo — o CMake tenta re-resolver
+# o nome "clang++" e aborta com "not a full path / not found in the PATH".
+# Obs.: este clang++ usa o ABI da MSVC (target x86_64-pc-windows-msvc), então o
+# configure E o build precisam rodar com o ambiente do vcvars64 ativo (INCLUDE/LIB).
+set(CMAKE_CXX_COMPILER clang++)
+
 # Nome do projeto e linguagem. Declarar só CXX evita procurar um compilador C à toa.
 project(VkWizardVS LANGUAGES CXX)
+
+# Gera build/compile_commands.json (flags exatas por arquivo). O IntelliSense da
+# extensão C/C++ e o clangd leem esse arquivo pra achar includes (Vulkan, SDL etc.)
+# sem depender da extensão CMake Tools estar ativa. Suportado pelos geradores Ninja.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Padrão da linguagem para todos os alvos do projeto.
 # Obs.: o ideal "moderno" seria target_compile_features(<alvo> PUBLIC cxx_std_26),

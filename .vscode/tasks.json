@@ -2,19 +2,48 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "CMake Configure",
+      "icon": {
+        "color": "terminal.ansiYellow",
+        "id": "gear"
+      },
+      "detail": "Run CMake configure (generates build/)",
+      "type": "process",
+      "command": "pwsh",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "configure.ps1"],
+      "problemMatcher": []
+    },
+
+    {
       "label": "CMake Build (Debug)",
       "icon": {
         "color": "terminal.ansiGreen",
         "id": "tools"
       },
       "detail": "Run CMake build for debugging",
-      "type": "shell",
-      "command": "cmake",
-      "args": [
-        "--build",
-        "build",
+      // Delega pro build.ps1, que carrega o ambiente do MSVC (Launch-VsDevShell)
+      // antes do cmake — a lógica de build mora num lugar só.
+      "type": "process",
+      "command": "pwsh",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "build.ps1", "Debug"],
+      // $msCompile pro cl.exe (C da SDL); o matcher inline cobre o clang++
+      // (diagnóstico estilo GCC: arquivo:linha:coluna: error: msg). O ninja roda
+      // com cwd em build/, então caminhos relativos resolvem a partir de lá.
+      "problemMatcher": [
+        "$msCompile",
+        {
+          "owner": "clang",
+          "fileLocation": ["autoDetect", "${workspaceFolder}/build"],
+          "pattern": {
+            "regexp": "^(.+?):(\\d+):(\\d+):\\s+(warning|error|fatal error):\\s+(.+)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "message": 5
+          }
+        }
       ],
-      "problemMatcher": "$msCompile",
       "group": "build"
     },
 
@@ -25,15 +54,24 @@
         "id": "tools"
       },
       "detail": "Run CMake build for release",
-      "type": "shell",
-      "command": "cmake",
-      "args": [
-        "--build",
-        "build",
-        "--config",
-        "Release"
+      "type": "process",
+      "command": "pwsh",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "build.ps1", "Release"],
+      "problemMatcher": [
+        "$msCompile",
+        {
+          "owner": "clang",
+          "fileLocation": ["autoDetect", "${workspaceFolder}/build"],
+          "pattern": {
+            "regexp": "^(.+?):(\\d+):(\\d+):\\s+(warning|error|fatal error):\\s+(.+)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "message": 5
+          }
+        }
       ],
-      "problemMatcher": "$msCompile",
       "group": "build"
     },
 

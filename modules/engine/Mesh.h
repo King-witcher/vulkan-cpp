@@ -1,9 +1,10 @@
 #pragma once
-#include "RustTypes.h"
-#include "glm/glm.hpp"
-#include <vulkan/vulkan_raii.hpp>
 
 #include <vector>
+#include <vulkan/vulkan_raii.hpp>
+#include <glm/glm.hpp>
+
+#include "Pipeline.h"
 
 namespace gd
 {
@@ -26,7 +27,7 @@ namespace gd
       }
 
       static std::array<vk::VertexInputAttributeDescription, 2> getAttributeDescriptions()
-      {
+	  {
         vk::VertexInputAttributeDescription position;
         position.setLocation(0);
         position.setBinding(0);
@@ -43,8 +44,11 @@ namespace gd
       }
     };
 
-    Mesh(const std::vector<Vertex> vertices) : vertices(std::move(vertices)) {}
+    Mesh(const std::vector<Vertex> vertices, gd::Pipeline &pipeline) : vertices(std::move(vertices)), pipeline(pipeline) {}
 
     std::vector<Vertex> vertices;
+    gd::Pipeline &pipeline;
+
+  private:
   };
 }

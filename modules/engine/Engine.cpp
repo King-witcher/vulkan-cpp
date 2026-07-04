@@ -15,7 +15,7 @@ void gd::Engine::run()
 		{{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
 		{{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
 	};
-	gd::Mesh model(vertices);
+	gd::Mesh model(vertices, pipeline_);
 	auto dataSize = vertices.size() * sizeof(gd::Mesh::Vertex);
 	auto [buffer, mem] = device_.alloc(dataSize);
 	auto ptr = *mem.mapMemory(0, dataSize);
@@ -168,10 +168,11 @@ void gd::Engine::draw(vk::raii::Buffer &vertexBuffer, u32 vertices)
 {
 	auto &frame = frames[inFlightIndex];
 
-	device_.waitForFence(frame.inFlightFence);
+	device_.waitForFence(frame.fence);
+	device_.resetFence(frame.fence);
+
 	auto &presentReady = frame.presentReady;
-	auto &image = swapChain_->acquireNextImage(presentReady);
-	device_.resetFence(frame.inFlightFence);
+	auto &image = swapChain_->acquireNextImage(frame.presentReady);
 	frame.commandBuffer.reset();
 
 	recordCommandBuffer(frame.commandBuffer, image.getImage(), image.getImageView(), vertexBuffer, vertices);
@@ -185,7 +186,7 @@ void gd::Engine::draw(vk::raii::Buffer &vertexBuffer, u32 vertices)
 	submitInfo.setWaitSemaphores(*presentReady);
 	submitInfo.setCommandBuffers(*frame.commandBuffer);
 	submitInfo.setSignalSemaphores(renderReady);
-	device_.submitGraphics(submitInfo, frame.inFlightFence);
+	device_.submitGraphics(submitInfo, frame.fence);
 
 	// Present
 	swapChain_->present(image);

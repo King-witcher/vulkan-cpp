@@ -3,20 +3,23 @@
   "configurations": [
     {
       "name": "Run (Debug)",
-      "type": "cppvsdbg",
+      // "lldb" = extensão CodeLLDB. Casa com o resto da toolchain (clang++ +
+      // clangd); o clang targeting msvc gera PDB, que o LLDB lê numa boa.
+      "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/build/Debug/VkWizardVS.exe",
       "cwd": "${workspaceFolder}",
-      "externalConsole": true,
+      // Equivalente ao externalConsole do cppvsdbg.
+      "terminal": "external",
       "preLaunchTask": "Build All (Debug)"
     },
     {
       "name": "Run (Release)",
-      "type": "cppvsdbg",
+      "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/build/Release/VkWizardVS.exe",
       "cwd": "${workspaceFolder}",
-      "externalConsole": true,
+      "terminal": "external",
       "preLaunchTask": "Build All (Release)"
     },
   ]

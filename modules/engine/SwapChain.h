@@ -36,7 +36,7 @@ namespace gd
 		vk::Extent2D extent() const { return extent_; }
 		vk::raii::SwapchainKHR &vkSwapChain() { return vkSwapChain_; }
 		vk::SwapchainKHR operator*() const { return *vkSwapChain_; }
-		void present(gd::SwapchainImage &frame);
+		void present(gd::SwapchainImage &image);
 
 	private:
 		Device &device_;
@@ -44,9 +44,9 @@ namespace gd
 		vk::Format vkImageFormat_;
 		vk::Extent2D extent_;
 		vk::raii::SwapchainKHR vkSwapChain_ = nullptr;
-		std::vector<SwapchainImage> frames_;
+		std::vector<SwapchainImage> swapchainImages;
 
-		void createFrames(std::vector<vk::Image> images);
+		void createImages(std::vector<vk::Image> images);
 
 		/** Create or recreate the swapchain. */
 		void recreate();
