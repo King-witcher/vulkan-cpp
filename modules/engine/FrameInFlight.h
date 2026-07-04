@@ -8,7 +8,6 @@ namespace gd
 {
     class FrameInFlight
     {
-        friend class Engine;
         friend class Renderer;
         friend class RenderFrame;
 
@@ -16,7 +15,7 @@ namespace gd
         FrameInFlight(gd::Device &device);
 
         vk::raii::CommandBuffer commandBuffer = nullptr;
-        vk::raii::Semaphore presentReady = nullptr;
+        vk::raii::Semaphore imageAvailable = nullptr;
         vk::raii::Fence fence = nullptr;
     };
 } // namespace gd

@@ -8,3 +8,7 @@ param([string]$Config = 'Debug')
 & 'C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\Launch-VsDevShell.ps1' -Arch amd64 -HostArch amd64 -SkipAutomaticLocation | Out-Null
 
 cmake --build build --config $Config
+
+# Propaga o exit code do cmake pro processo. Sem isso, o `pwsh -File` sai 0 mesmo
+# quando a compilação falha, e o VS Code lança o exe achando que o build passou.
+exit $LASTEXITCODE

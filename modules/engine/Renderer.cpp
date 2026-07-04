@@ -45,14 +45,21 @@ void gd::RenderFrame::beginRendering(vk::Extent2D extent)
 void gd::RenderFrame::endRendering()
 {
     frameInFlight.commandBuffer.endRendering();
+    transitionPresentation();
+    frameInFlight.commandBuffer.end();
 }
 
 void gd::RenderFrame::transitionRendering()
 {
     vk::ImageMemoryBarrier2 barrier = {
-        .srcStageMask = {},
+        // What the transition should wait before running.
+        // Even though there are no commands before the pipeline, sets a dependency on the Color Attachment Output stage.
+        // This blocks the transition from happening before the imageAvailable semaphore, which blocks this sage, signals.
+        .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
         .srcAccessMask = {},
+        // What should wait the transition before running.
         .dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+        // Flushes the cache TODO: Continue this comment.
         .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
         .oldLayout = vk::ImageLayout::eUndefined,
         .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
@@ -77,6 +84,7 @@ void gd::RenderFrame::transitionRendering()
 void gd::RenderFrame::transitionPresentation()
 {
     vk::ImageMemoryBarrier2 barrier = {
+        // Waits for all Color Attachment Outputs to finish before transitioning back to present optimal layout.
         .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
         .srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
         .dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe,
@@ -103,11 +111,11 @@ void gd::RenderFrame::transitionPresentation()
 
 gd::RenderFrame gd::Renderer::beginFrame()
 {
-    auto &frameInFlight = frames[currentFrame];
+    auto &frameInFlight = frames[nextFrame];
 
     device.waitForFence(frameInFlight.fence);
     device.resetFence(frameInFlight.fence);
-    auto &swapchainImage = swapchain.acquireNextImage(frameInFlight.presentReady);
+    auto &swapchainImage = swapchain.acquireNextImage(frameInFlight.imageAvailable);
 
     frameInFlight.commandBuffer.reset();
 
@@ -115,29 +123,41 @@ gd::RenderFrame gd::Renderer::beginFrame()
     gd::RenderFrame renderFrame{frameInFlight, swapchainImage};
     renderFrame.transitionRendering();
     renderFrame.beginRendering(swapchain.extent());
+
+    nextFrame = (nextFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+
     return renderFrame;
 }
 
 void gd::Renderer::endFrame(gd::RenderFrame &renderFrame)
 {
-    auto &frameInFlight = frames[currentFrame];
-
+    auto &frameInFlight = renderFrame.frameInFlight;
     renderFrame.endRendering();
-    renderFrame.transitionPresentation();
-    renderFrame.frameInFlight.commandBuffer.end();
 
-    auto renderReady = renderFrame.swapchainImage.getRenderReadySemaphore();
+    auto renderFinished = renderFrame.swapchainImage.getRenderReadySemaphore();
 
     // Present to Swapchain
-    // TODO: Check SubmitInfo2 and PipelineStageFlagBits2
-    vk::SubmitInfo submitInfo;
-    vk::PipelineStageFlags waitDstStageMask{vk::PipelineStageFlagBits::eColorAttachmentOutput};
-    submitInfo.setWaitDstStageMask(waitDstStageMask);
-    submitInfo.setWaitSemaphores(*renderFrame.frameInFlight.presentReady);
-    submitInfo.setCommandBuffers(*renderFrame.frameInFlight.commandBuffer);
-    submitInfo.setSignalSemaphores(renderReady);
-    device.submitGraphics(submitInfo, frameInFlight.fence);
-    swapchain.present(renderFrame.swapchainImage);
+    vk::SemaphoreSubmitInfo waitSemaphore;
+    waitSemaphore.setSemaphore(renderFrame.frameInFlight.imageAvailable);
+    // Trava a escrita na imagem até o acquireNextImage sinalizar. Estágios
+    // anteriores (vertex/geometry) podem adiantar enquanto a imagem não chega.
+    waitSemaphore.setStageMask(vk::PipelineStageFlagBits2::eColorAttachmentOutput);
 
-    currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    vk::SemaphoreSubmitInfo signalSemaphore;
+    signalSemaphore.setSemaphore(renderFinished);
+    // Sinaliza só depois de TUDO, incluindo a transitionPresentation() que
+    // deixa a imagem em ePresentSrcKHR. Senão o present poderia rodar cedo.
+    signalSemaphore.setStageMask(vk::PipelineStageFlagBits2::eAllCommands);
+
+    vk::CommandBufferSubmitInfo commandBufferInfo;
+    commandBufferInfo.setCommandBuffer(renderFrame.frameInFlight.commandBuffer);
+
+    // TODO: Check SubmitInfo2 and PipelineStageFlagBits2
+    vk::SubmitInfo2 submitInfo;
+    submitInfo.setCommandBufferInfos(commandBufferInfo);
+    submitInfo.setWaitSemaphoreInfos(waitSemaphore);
+    submitInfo.setSignalSemaphoreInfos(signalSemaphore);
+
+    device.submitGraphics2(submitInfo, frameInFlight.fence);
+    swapchain.present(renderFrame.swapchainImage);
 }

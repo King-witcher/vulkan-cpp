@@ -18,11 +18,15 @@ namespace gd
         void draw(vk::raii::Buffer &vertexBuffer, u32 count, gd::Pipeline &pipeline);
 
     private:
-        RenderFrame(gd::FrameInFlight &frameInFlight, gd::SwapchainImage &swapchainImage) : frameInFlight(frameInFlight), swapchainImage(swapchainImage) {}
+        RenderFrame(
+            gd::FrameInFlight &frameInFlight,
+            gd::SwapchainImage &swapchainImage)
+            : frameInFlight(frameInFlight),
+              swapchainImage(swapchainImage) {}
 
         void beginRendering(vk::Extent2D extent);
-        void transitionRendering();
         void endRendering();
+        void transitionRendering();
         void transitionPresentation();
 
         gd::FrameInFlight &frameInFlight;
@@ -32,7 +36,7 @@ namespace gd
     class Renderer
     {
     public:
-        Renderer(gd::Device &device, gd::Swapchain &swapchain, gd::Pipeline &pipeline) : device(device), swapchain(swapchain), pipeline(pipeline) {}
+        Renderer(gd::Device &device, gd::Swapchain &swapchain) : device(device), swapchain(swapchain) {}
 
         gd::RenderFrame beginFrame();
         void endFrame(gd::RenderFrame &frame);
@@ -42,11 +46,10 @@ namespace gd
 
         gd::Device &device;
         gd::Swapchain &swapchain;
-        gd::Pipeline &pipeline;
 
         std::array<gd::FrameInFlight, MAX_FRAMES_IN_FLIGHT> frames = {
             gd::FrameInFlight(device),
             gd::FrameInFlight(device)};
-        u32 currentFrame = 0;
+        u32 nextFrame = 0;
     };
 } // namespace gd

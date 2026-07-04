@@ -4,6 +4,6 @@ gd::FrameInFlight::FrameInFlight(gd::Device &device)
 {
     auto commandBuffers = device.allocateCommandBuffers(1);
     commandBuffer = std::move(commandBuffers[0]);
-    presentReady = device.createSemaphore();
+    imageAvailable = device.createSemaphore();
     fence = device.createFence(true);
 }
