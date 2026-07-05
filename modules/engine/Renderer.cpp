@@ -19,12 +19,14 @@ void gd::RenderFrame::beginRendering(vk::Extent2D extent)
     colorAttachmentInfo.setClearValue(vk::ClearColorValue(0.05f, 0.05f, 0.05f, 1.0f));
 
     vk::RenderingInfo renderingInfo;
+    // The rectangle in the image that should be affected by this render pass.
     renderingInfo.setRenderArea({{0, 0}, extent});
     renderingInfo.setLayerCount(1);
     renderingInfo.setColorAttachments(colorAttachmentInfo);
 
     frameInFlight.commandBuffer.beginRendering(renderingInfo);
 
+    // Defines the container size inside which the rendered image will be fitted.
     frameInFlight.commandBuffer.setViewport(
         0,
         vk::Viewport(
@@ -38,7 +40,7 @@ void gd::RenderFrame::beginRendering(vk::Extent2D extent)
     frameInFlight.commandBuffer.setScissor(
         0,
         vk::Rect2D{
-            .offset = vk::Offset2D{0, 0},
+            .offset = vk::Offset2D{500, 0},
             .extent = extent});
 }
 
@@ -56,13 +58,15 @@ void gd::RenderFrame::transitionRendering()
         // Even though there are no commands before the pipeline, sets a dependency on the Color Attachment Output stage.
         // This blocks the transition from happening before the imageAvailable semaphore, which blocks this sage, signals.
         .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+        // There are no memory writes to be made available.
         .srcAccessMask = {},
         // What should wait the transition before running.
         .dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-        // Flushes the cache TODO: Continue this comment.
+        // Makes this access visible (invalidate cache)
         .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
         .oldLayout = vk::ImageLayout::eUndefined,
         .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+        // Since we are using the same queue for everything, nothing needs to be transfered.
         .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .image = swapchainImage.getImage(),
@@ -86,8 +90,11 @@ void gd::RenderFrame::transitionPresentation()
     vk::ImageMemoryBarrier2 barrier = {
         // Waits for all Color Attachment Outputs to finish before transitioning back to present optimal layout.
         .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+        // Flushes color attachment writes.
         .srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
-        .dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe,
+        // There is nothing in this buffer to wait for this barrier to finish. Same as eBottomOfPipe.
+        .dstStageMask = {},
+        // Nothing to be made available.
         .dstAccessMask = {},
         .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
         .newLayout = vk::ImageLayout::ePresentSrcKHR,
