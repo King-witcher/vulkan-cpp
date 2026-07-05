@@ -8,7 +8,6 @@
 #include "device.h"
 #include "swapchain.h"
 #include "pipeline.h"
-#include "frame_in_flight.h"
 
 namespace gd
 {
@@ -25,13 +24,14 @@ namespace gd
         vk::raii::Instance vkInstance = CreateInstance();
         vk::raii::SurfaceKHR vkSurface = window.VulkanSurface(vkInstance);
         gd::Device device{vkInstance, vkSurface};
-        gd::Swapchain swapChain{device, vkSurface};
-        gd::Pipeline pipeline = {device, swapChain, "shaders/shader.spv"};
+        gd::Swapchain swapchain{device, vkSurface};
+        gd::Pipeline pipeline = {device, swapchain.ImageFormat(),
+                                 "shaders/shader.spv"};
         gd::Input input{};
 
-        gd::Renderer renderer{device, swapChain};
+        gd::Renderer renderer{device, swapchain};
 
         vk::raii::Instance CreateInstance() const;
-        void Draw(vk::raii::Buffer &vertexBuffer, u32 vertices);
+        void Draw(std::vector<gd::Mesh> &);
     };
 } // namespace gd

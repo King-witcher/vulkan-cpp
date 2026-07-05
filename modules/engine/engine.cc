@@ -1,26 +1,32 @@
 #include <iostream>
+#include <vector>
 
 #include "engine.h"
-#include "rust_types.h"
 #include "mesh.h"
 
 using namespace gd;
 
 void gd::Engine::Run()
 {
-    std::vector<gd::Mesh::Vertex> vertices = {
+    std::vector<gd::Vertex> vertices1 = {
         {{0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
         {{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
         {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
     };
-    auto dataSize = vertices.size() * sizeof(gd::Mesh::Vertex);
-    auto [buffer, mem] = device.Alloc(dataSize);
-    auto ptr = *mem.mapMemory(0, dataSize);
-    memcpy(ptr, vertices.data(), dataSize);
-    mem.unmapMemory();
+
+    std::vector<gd::Vertex> vertices2 = {
+        {{0.2f, -0.4f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+        {{0.2f, 0.6f, 0.1f}, {0.0f, 1.0f, 0.0f}},
+        {{-0.6f, 0.6f, 0.1f}, {0.0f, 0.0f, 1.0f}},
+    };
+
+    std::vector<gd::Mesh> meshes;
+    meshes.emplace_back(device, vertices1);
+    meshes.emplace_back(device, vertices2);
+
     for (;;)
     {
-        Draw(buffer, vertices.size());
+        Draw(meshes);
         input.Update();
         if (input.ShouldQuit())
             break;
@@ -57,11 +63,11 @@ vk::raii::Instance gd::Engine::CreateInstance() const
     return instance;
 }
 
-void gd::Engine::Draw(vk::raii::Buffer &vertexBuffer, u32 vertices)
+void gd::Engine::Draw(std::vector<gd::Mesh> &meshes)
 {
-    auto renderFrame = renderer.BeginFrame();
-    renderFrame.Draw(vertexBuffer, vertices, pipeline);
-    renderer.EndFrame(renderFrame);
+    auto frame = renderer.BeginFrame();
+    renderer.DrawScene(frame, meshes);
+    renderer.EndFrame(frame);
 }
 
 gd::Engine::Engine()

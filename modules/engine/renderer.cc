@@ -1,22 +1,32 @@
 #include "renderer.h"
+#include "device.h"
+#include "mesh.h"
+#include "pipeline.h"
+#include "swapchain.h"
 #include "vulkan/vulkan.hpp"
+#include <vector>
 
-void gd::RenderFrame::Draw(vk::raii::Buffer &vertexBuffer, u32 count, gd::Pipeline &pipeline)
+#pragma region gd::FrameInFlight
+gd::FrameInFlight::FrameInFlight(gd::Device &device)
 {
-    frameInFlight.commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.VkPipeline());
-    // TODO: Experiment bindVertexBuffers2
-    frameInFlight.commandBuffer.bindVertexBuffers(0, {vertexBuffer}, {0});
-    frameInFlight.commandBuffer.draw(count, 1, 0, 0);
+    auto commandBuffers = device.AllocateCommandBuffers(1);
+    commandBuffer = std::move(commandBuffers[0]);
+    imageAvailable = device.CreateSemaphore();
+    fence = device.CreateFence(true);
 }
+#pragma endregion
 
+#pragma region gd::RenderFrame
 void gd::RenderFrame::BeginRendering(vk::Extent2D extent)
 {
     vk::RenderingAttachmentInfo colorAttachmentInfo;
     colorAttachmentInfo.setImageView(swapchainImage.ImageView());
-    colorAttachmentInfo.setImageLayout(vk::ImageLayout::eColorAttachmentOptimal);
+    colorAttachmentInfo.setImageLayout(
+        vk::ImageLayout::eColorAttachmentOptimal);
     colorAttachmentInfo.setLoadOp(vk::AttachmentLoadOp::eClear);
     colorAttachmentInfo.setStoreOp(vk::AttachmentStoreOp::eStore);
-    colorAttachmentInfo.setClearValue(vk::ClearColorValue(0.05f, 0.05f, 0.05f, 1.0f));
+    colorAttachmentInfo.setClearValue(
+        vk::ClearColorValue(0.05f, 0.05f, 0.05f, 1.0f));
 
     vk::RenderingInfo renderingInfo;
     // The rectangle in the image that should be affected by this render pass.
@@ -26,22 +36,14 @@ void gd::RenderFrame::BeginRendering(vk::Extent2D extent)
 
     frameInFlight.commandBuffer.beginRendering(renderingInfo);
 
-    // Defines the container size inside which the rendered image will be fitted.
+    // Defines the container size inside which the rendered image will be
+    // fitted.
     frameInFlight.commandBuffer.setViewport(
-        0,
-        vk::Viewport(
-            0.0f,
-            0.0f,
-            static_cast<f32>(extent.width),
-            static_cast<f32>(extent.height),
-            0.0f,
-            1.0f));
+        0, vk::Viewport(0.0f, 0.0f, static_cast<f32>(extent.width),
+                        static_cast<f32>(extent.height), 0.0f, 1.0f));
 
     frameInFlight.commandBuffer.setScissor(
-        0,
-        vk::Rect2D{
-            .offset = vk::Offset2D{0, 0},
-            .extent = extent});
+        0, vk::Rect2D{.offset = vk::Offset2D{0, 0}, .extent = extent});
 }
 
 void gd::RenderFrame::EndRendering()
@@ -55,8 +57,10 @@ void gd::RenderFrame::TransitionRendering()
 {
     vk::ImageMemoryBarrier2 barrier = {
         // What the transition should wait before running.
-        // Even though there are no commands before the pipeline, sets a dependency on the Color Attachment Output stage.
-        // This blocks the transition from happening before the imageAvailable semaphore, which blocks this sage, signals.
+        // Even though there are no commands before the pipeline, sets a
+        // dependency on the Color Attachment Output stage.
+        // This blocks the transition from happening before the imageAvailable
+        // semaphore, which blocks this sage, signals.
         .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
         // There are no memory writes to be made available.
         .srcAccessMask = {},
@@ -66,21 +70,20 @@ void gd::RenderFrame::TransitionRendering()
         .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
         .oldLayout = vk::ImageLayout::eUndefined,
         .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
-        // Since we are using the same queue for everything, nothing needs to be transfered.
+        // Since we are using the same queue for everything, nothing needs to be
+        // transfered.
         .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .image = swapchainImage.Image(),
-        .subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 1}};
+        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+                             .baseMipLevel = 0,
+                             .levelCount = 1,
+                             .baseArrayLayer = 0,
+                             .layerCount = 1}};
 
-    vk::DependencyInfo dependencyInfo = {
-        .dependencyFlags = {},
-        .imageMemoryBarrierCount = 1,
-        .pImageMemoryBarriers = &barrier};
+    vk::DependencyInfo dependencyInfo = {.dependencyFlags = {},
+                                         .imageMemoryBarrierCount = 1,
+                                         .pImageMemoryBarriers = &barrier};
 
     frameInFlight.commandBuffer.pipelineBarrier2(dependencyInfo);
 }
@@ -88,11 +91,13 @@ void gd::RenderFrame::TransitionRendering()
 void gd::RenderFrame::TransitionPresentation()
 {
     vk::ImageMemoryBarrier2 barrier = {
-        // Waits for all Color Attachment Outputs to finish before transitioning back to present optimal layout.
+        // Waits for all Color Attachment Outputs to finish before transitioning
+        // back to present optimal layout.
         .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
         // Flushes color attachment writes.
         .srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
-        // There is nothing in this buffer to wait for this barrier to finish. Same as eBottomOfPipe.
+        // There is nothing in this buffer to wait for this barrier to finish.
+        // Same as eBottomOfPipe.
         .dstStageMask = {},
         // Nothing to be made available.
         .dstAccessMask = {},
@@ -101,28 +106,29 @@ void gd::RenderFrame::TransitionPresentation()
         .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .image = swapchainImage.Image(),
-        .subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 1}};
+        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+                             .baseMipLevel = 0,
+                             .levelCount = 1,
+                             .baseArrayLayer = 0,
+                             .layerCount = 1}};
 
-    vk::DependencyInfo dependencyInfo = {
-        .dependencyFlags = {},
-        .imageMemoryBarrierCount = 1,
-        .pImageMemoryBarriers = &barrier};
+    vk::DependencyInfo dependencyInfo = {.dependencyFlags = {},
+                                         .imageMemoryBarrierCount = 1,
+                                         .pImageMemoryBarriers = &barrier};
 
     frameInFlight.commandBuffer.pipelineBarrier2(dependencyInfo);
 }
+#pragma endregion
 
+#pragma region gd::Renderer
 gd::RenderFrame gd::Renderer::BeginFrame()
 {
     auto &frameInFlight = frames[nextFrame];
 
     device.WaitForFence(frameInFlight.fence);
     device.ResetFence(frameInFlight.fence);
-    auto &swapchainImage = swapchain.AcquireNextImage(frameInFlight.imageAvailable);
+    auto &swapchainImage =
+        swapchain.AcquireNextImage(frameInFlight.imageAvailable);
 
     frameInFlight.commandBuffer.reset();
 
@@ -134,6 +140,21 @@ gd::RenderFrame gd::Renderer::BeginFrame()
     nextFrame = (nextFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
     return renderFrame;
+}
+
+void gd::Renderer::DrawScene(gd::RenderFrame &frame,
+                             std::vector<gd::Mesh> &scene)
+{
+    auto &commandBuffer = frame.frameInFlight.commandBuffer;
+
+    commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics,
+                               trianglePipeline.VkPipeline());
+
+    for (auto &mesh : scene)
+    {
+        commandBuffer.bindVertexBuffers(0, {mesh.vertexBuffer}, {0});
+        commandBuffer.draw(mesh.vertices.size(), 1, 0, 0);
+    }
 }
 
 void gd::Renderer::EndFrame(gd::RenderFrame &renderFrame)
@@ -148,7 +169,8 @@ void gd::Renderer::EndFrame(gd::RenderFrame &renderFrame)
     waitSemaphore.setSemaphore(renderFrame.frameInFlight.imageAvailable);
     // Trava a escrita na imagem até o acquireNextImage sinalizar. Estágios
     // anteriores (vertex/geometry) podem adiantar enquanto a imagem não chega.
-    waitSemaphore.setStageMask(vk::PipelineStageFlagBits2::eColorAttachmentOutput);
+    waitSemaphore.setStageMask(
+        vk::PipelineStageFlagBits2::eColorAttachmentOutput);
 
     vk::SemaphoreSubmitInfo signalSemaphore;
     signalSemaphore.setSemaphore(renderFinished);
@@ -168,3 +190,4 @@ void gd::Renderer::EndFrame(gd::RenderFrame &renderFrame)
     device.SubmitGraphics2(submitInfo, frameInFlight.fence);
     swapchain.Present(renderFrame.swapchainImage);
 }
+#pragma endregion

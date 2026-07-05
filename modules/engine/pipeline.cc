@@ -1,10 +1,12 @@
-#include "pipeline.h"
+#include <fstream>
+
+#include <vulkan/vulkan.hpp>
+
 #include "panic.h"
 #include "rust_types.h"
-#include "mesh.h"
-#include "vulkan/vulkan.hpp"
 
-#include <fstream>
+#include "pipeline.h"
+#include "vertex.h"
 
 using namespace std;
 
@@ -21,14 +23,15 @@ static vector<u8> ReadFile(const string &filename)
     return buffer;
 }
 
-gd::Pipeline::Pipeline(Device &device, gd::Swapchain &swapchain, std::string shaderPath)
+gd::Pipeline::Pipeline(Device &device, vk::Format imageFormat,
+                       std::string shaderPath)
 {
     auto &vkDevice = device.VkDevice();
     auto shaderCode = ReadFile(shaderPath);
     auto shaderModule = device.CreateShaderModule(shaderCode);
 
-    auto bindingDescriptions = Mesh::Vertex::BindingDescription();
-    auto attributeDescriptions = Mesh::Vertex::AttributeDescriptions();
+    auto bindingDescriptions = Vertex::BindingDescription();
+    auto attributeDescriptions = Vertex::AttributeDescriptions();
 
     // Fixed functions
     vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
@@ -87,12 +90,12 @@ gd::Pipeline::Pipeline(Device &device, gd::Swapchain &swapchain, std::string sha
 
     // Required for dynamic rendering
     vk::PipelineRenderingCreateInfo pipelineRenderingInfo;
-    auto format = swapchain.ImageFormat();
-    pipelineRenderingInfo.setColorAttachmentFormats(format);
+    pipelineRenderingInfo.setColorAttachmentFormats(imageFormat);
 
     // Pipeline layout
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
-    auto pipelineLayoutResult = vkDevice.createPipelineLayout(pipelineLayoutInfo);
+    auto pipelineLayoutResult =
+        vkDevice.createPipelineLayout(pipelineLayoutInfo);
     if (!pipelineLayoutResult.has_value())
         Panic("Failed to create pipeline layout");
 
@@ -121,5 +124,6 @@ gd::Pipeline::Pipeline(Device &device, gd::Swapchain &swapchain, std::string sha
     pipelineInfo.setLayout(*pipelineLayoutResult);
 
     // Sem cache por enquanto
-    vkPipeline = std::move(*vkDevice.createGraphicsPipeline(nullptr, pipelineInfo));
+    vkPipeline =
+        std::move(*vkDevice.createGraphicsPipeline(nullptr, pipelineInfo));
 }

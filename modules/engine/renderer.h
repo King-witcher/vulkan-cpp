@@ -2,27 +2,38 @@
 
 #include <vulkan/vulkan_raii.hpp>
 
-#include "frame_in_flight.h"
 #include "device.h"
+#include "mesh.h"
 #include "swapchain.h"
 #include "pipeline.h"
 #include "vulkan/vulkan.hpp"
 
 namespace gd
 {
+
+    class FrameInFlight
+    {
+        friend class Renderer;
+        friend class RenderFrame;
+
+    private:
+        FrameInFlight(gd::Device &device);
+
+        vk::raii::CommandBuffer commandBuffer = nullptr;
+        vk::raii::Semaphore imageAvailable = nullptr;
+        vk::raii::Fence fence = nullptr;
+    };
+
     class RenderFrame
     {
         friend class Renderer;
 
-    public:
-        void Draw(vk::raii::Buffer &vertexBuffer, u32 count, gd::Pipeline &pipeline);
-
     private:
-        RenderFrame(
-            gd::FrameInFlight &frameInFlight,
-            gd::SwapchainImage &swapchainImage)
-            : frameInFlight(frameInFlight),
-              swapchainImage(swapchainImage) {}
+        RenderFrame(gd::FrameInFlight &frameInFlight,
+                    gd::SwapchainImage &swapchainImage)
+            : frameInFlight(frameInFlight), swapchainImage(swapchainImage)
+        {
+        }
 
         void BeginRendering(vk::Extent2D extent);
         void EndRendering();
@@ -36,9 +47,15 @@ namespace gd
     class Renderer
     {
     public:
-        Renderer(gd::Device &device, gd::Swapchain &swapchain) : device(device), swapchain(swapchain) {}
+        Renderer(gd::Device &device, gd::Swapchain &swapchain)
+            : device(device), swapchain(swapchain),
+              trianglePipeline(device, swapchain.ImageFormat(),
+                               "shaders/shader.spv")
+        {
+        }
 
         gd::RenderFrame BeginFrame();
+        void DrawScene(gd::RenderFrame &, std::vector<gd::Mesh> &);
         void EndFrame(gd::RenderFrame &frame);
 
     private:
@@ -46,10 +63,10 @@ namespace gd
 
         gd::Device &device;
         gd::Swapchain &swapchain;
+        gd::Pipeline trianglePipeline;
 
         std::array<gd::FrameInFlight, MAX_FRAMES_IN_FLIGHT> frames = {
-            gd::FrameInFlight(device),
-            gd::FrameInFlight(device)};
+            gd::FrameInFlight(device), gd::FrameInFlight(device)};
         u32 nextFrame = 0;
     };
 } // namespace gd

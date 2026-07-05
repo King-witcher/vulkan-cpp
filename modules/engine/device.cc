@@ -53,7 +53,8 @@ vk::raii::PhysicalDevice PickPhysicalDevice(vk::raii::Instance &instance)
     Panic("failed to find a suitable GPU!");
 }
 
-/** Gets the index of the first queue family that supports graphics in a specific device. */
+/** Gets the index of the first queue family that supports graphics in a
+ * specific device. */
 u32 FindGraphicsQueueFamily(vk::raii::PhysicalDevice device)
 {
     auto familyProperties = device.getQueueFamilyProperties();
@@ -64,10 +65,12 @@ u32 FindGraphicsQueueFamily(vk::raii::PhysicalDevice device)
         if (familyProperty.queueFlags & vk::QueueFlagBits::eGraphics)
             return i;
     }
-    Panic("unreachable: Vulkan requires implementations to expose at least one graphics queue family");
+    Panic("unreachable: Vulkan requires implementations to expose at least one "
+          "graphics queue family");
 }
 
-vk::raii::Device CreateLogicalDevice(vk::raii::PhysicalDevice physicalDevice, u32 graphicsIndex)
+vk::raii::Device CreateLogicalDevice(vk::raii::PhysicalDevice physicalDevice,
+                                     u32 graphicsIndex)
 {
     using namespace vk;
 
@@ -76,14 +79,16 @@ vk::raii::Device CreateLogicalDevice(vk::raii::PhysicalDevice physicalDevice, u3
     queueCreateInfo.setQueuePriorities(queuePriorities);
     std::array queueCreateInfos = {queueCreateInfo};
 
-    StructureChain<PhysicalDeviceFeatures2, PhysicalDeviceVulkan13Features, PhysicalDeviceExtendedDynamicStateFeaturesEXT>
+    StructureChain<PhysicalDeviceFeatures2, PhysicalDeviceVulkan13Features,
+                   PhysicalDeviceExtendedDynamicStateFeaturesEXT>
         featureChain = {
             {}, // vk::PhysicalDeviceFeatures2 (empty for now)
             {
                 .synchronization2 = true,
                 .dynamicRendering = true,
-            },                             // Enable dynamic rendering from Vulkan 1.3
-            {.extendedDynamicState = true} // Enable extended dynamic state from the extension
+            }, // Enable dynamic rendering from Vulkan 1.3
+            {.extendedDynamicState =
+                 true} // Enable extended dynamic state from the extension
         };
 
     DeviceCreateInfo deviceInfo{};
@@ -100,7 +105,8 @@ vk::raii::Device CreateLogicalDevice(vk::raii::PhysicalDevice physicalDevice, u3
     return std::move(*createResult);
 }
 
-vk::raii::CommandPool CreateCommandPool(vk::raii::Device &vkDevice, u32 graphicsIndex)
+vk::raii::CommandPool CreateCommandPool(vk::raii::Device &vkDevice,
+                                        u32 graphicsIndex)
 {
     using namespace vk;
     CommandPoolCreateInfo createInfo;
@@ -119,11 +125,13 @@ gd::Device::Device(vk::raii::Instance &instance, vk::raii::SurfaceKHR &surface)
     auto graphicsIndex = FindGraphicsQueueFamily(vkPhysicalDevice);
 
     // TODO: Consider different queue families for presentation
-    auto [surfaceSupportResult, surfaceSupport] = vkPhysicalDevice.getSurfaceSupportKHR(graphicsIndex, surface);
+    auto [surfaceSupportResult, surfaceSupport] =
+        vkPhysicalDevice.getSurfaceSupportKHR(graphicsIndex, surface);
     if (surfaceSupportResult != vk::Result::eSuccess)
         Panic("Failed to get surface support for physical device.");
     if (surfaceSupport == vk::False)
-        Panic("Selected physical device does not support presentation to the given surface.");
+        Panic("Selected physical device does not support presentation to the "
+              "given surface.");
 
     vkDevice = CreateLogicalDevice(vkPhysicalDevice, graphicsIndex);
     vkCommandPool = CreateCommandPool(vkDevice, graphicsIndex);
@@ -187,7 +195,8 @@ bool gd::Device::Present(vk::PresentInfoKHR &presentInfo)
     }
 }
 
-std::vector<vk::raii::CommandBuffer> gd::Device::AllocateCommandBuffers(u32 count) const
+std::vector<vk::raii::CommandBuffer>
+gd::Device::AllocateCommandBuffers(u32 count) const
 {
     vk::CommandBufferAllocateInfo allocateInfo{
         .commandPool = vkCommandPool,
@@ -205,11 +214,13 @@ vk::raii::Semaphore gd::Device::CreateSemaphore() const
 vk::raii::Fence gd::Device::CreateFence(bool signaled) const
 {
     return std::move(*vkDevice.createFence({
-        .flags = signaled ? vk::FenceCreateFlagBits::eSignaled : vk::FenceCreateFlags{},
+        .flags = signaled ? vk::FenceCreateFlagBits::eSignaled
+                          : vk::FenceCreateFlags{},
     }));
 }
 
-vk::raii::ShaderModule gd::Device::CreateShaderModule(const std::vector<u8> code) const
+vk::raii::ShaderModule
+gd::Device::CreateShaderModule(const std::vector<u8> code) const
 {
     vk::ShaderModuleCreateInfo createInfo{
         .codeSize = code.size(),
@@ -218,7 +229,8 @@ vk::raii::ShaderModule gd::Device::CreateShaderModule(const std::vector<u8> code
     return std::move(*vkDevice.createShaderModule(createInfo));
 }
 
-std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> gd::Device::Alloc(usize size)
+std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory>
+gd::Device::Alloc(usize size)
 {
     // Create buffer
     vk::BufferCreateInfo bufferInfo;
@@ -232,10 +244,14 @@ std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> gd::Device::Alloc(usize siz
 
     // Allocate memory
     auto requirements = buffer.getMemoryRequirements();
-    // Estamos usando HostCoherent para não precisar dar vkDevice.mapFlushedMemoryRanges() depois de escrever na memória mapeada e vkDevice.invalidateMappedMemoryRanges antes de ler da memória mapeada.
+    // Estamos usando HostCoherent para não precisar dar
+    // vkDevice.mapFlushedMemoryRanges() depois de escrever na memória mapeada e
+    // vkDevice.invalidateMappedMemoryRanges antes de ler da memória mapeada.
     // Mas isso tem desempenho pior e pode ser mudado depois.
-    auto memType = FindMemoryType(requirements.memoryTypeBits,
-                                  vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    auto memType =
+        FindMemoryType(requirements.memoryTypeBits,
+                       vk::MemoryPropertyFlagBits::eHostVisible |
+                           vk::MemoryPropertyFlagBits::eHostCoherent);
     vk::MemoryAllocateInfo memInfo;
     memInfo.setAllocationSize(requirements.size);
     memInfo.setMemoryTypeIndex(memType);
@@ -251,15 +267,19 @@ std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> gd::Device::Alloc(usize siz
     return std::make_tuple(std::move(buffer), std::move(memory));
 }
 
-// Existem heaps diferentes como VRAM e espaço de swap na RAM pra quando a VRAM acaba. São heaps diferentes.
-// Dentro de cada heap, existem tipos diferentes de memória.
-u32 gd::Device::FindMemoryType(u32 supportedTypes, vk::MemoryPropertyFlags properties)
+// Existem heaps diferentes como VRAM e espaço de swap na RAM pra quando a VRAM
+// acaba. São heaps diferentes. Dentro de cada heap, existem tipos diferentes de
+// memória.
+u32 gd::Device::FindMemoryType(u32 supportedTypes,
+                               vk::MemoryPropertyFlags properties)
 {
     auto memProps = vkPhysicalDevice.getMemoryProperties2();
     for (u32 i = 0; i < memProps.memoryProperties.memoryTypeCount; i++)
     {
-        if ((supportedTypes & (1 << i)) &&                                                       // Buffer suporta tipo i?
-            (memProps.memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) // Tipo i tem todas as flags que eu pedi?
+        if ((supportedTypes & (1 << i)) && // Buffer suporta tipo i?
+            (memProps.memoryProperties.memoryTypes[i].propertyFlags &
+             properties) ==
+                properties) // Tipo i tem todas as flags que eu pedi?
         {
             return i;
         }
