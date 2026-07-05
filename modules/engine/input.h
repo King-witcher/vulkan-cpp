@@ -12,9 +12,9 @@ namespace gd
 
     class Input
     {
-        friend class Engine;
 
     public:
+        Input() {}
         Input(Input &) = delete;
         Input &operator=(Input &) = delete;
 
@@ -27,9 +27,10 @@ namespace gd
         bool Minimized() { return minimized; }
         bool ShouldQuit() { return shouldQuit; }
 
-    private:
-        Input() {}
+        void Update();
+        void Clear();
 
+    private:
         static const int SDL_KEY_COUNT = 512;
         static const int MOUSE_BUTTON_COUNT = 8;
 
@@ -44,8 +45,5 @@ namespace gd
 
         MouseVector mouseAbsolute = {0.0f, 0.0f};
         MouseVector mouseDelta = {0.0f, 0.0f};
-
-        void Update();
-        void Clear();
     };
 } // namespace gd

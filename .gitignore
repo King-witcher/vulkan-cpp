@@ -4,3 +4,5 @@ CMakeFiles
 *.spv
 .vs
 .deps-cache
+ignore.*
+*.ignore

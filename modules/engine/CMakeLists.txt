@@ -13,8 +13,9 @@ add_library(VkWizard::engine ALIAS engine)
 # Headers públicos do engine (engine.h, window.h, ...). PUBLIC = visíveis para o
 # próprio engine E para quem o consome (o game). Preserva os #include "engine.h"
 # etc. resolvendo, sem precisar mexer no código.
-target_include_directories(engine PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+target_include_directories(engine
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/include
+    PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
 # (O padrão C++26 vem de CMAKE_CXX_STANDARD, definido no CMakeLists raiz.)
 
@@ -30,8 +31,6 @@ target_compile_definitions(engine PUBLIC
 # Dependências PUBLIC porque aparecem nos headers públicos do engine
 # (vários headers incluem vulkan_raii.hpp; Window.h usa SDL; usam tipos de core).
 # Sendo PUBLIC, o game herda Vulkan/SDL3/core de graça só por linkar o engine.
-target_link_libraries(engine PUBLIC
-    VkWizard::core
-    Vulkan::Vulkan
-    SDL3::SDL3
-    glm::glm)
+target_link_libraries(engine
+    PUBLIC VkWizard::core SDL3::SDL3 glm::glm
+    PRIVATE Vulkan::Vulkan)
