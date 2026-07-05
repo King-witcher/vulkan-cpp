@@ -1,12 +1,10 @@
-#include "Device.h"
-#include "RustTypes.h"
-#include "Panic.h"
+#include "device.h"
+#include "rust_types.h"
+#include "panic.h"
 #include "vulkan/vulkan.hpp"
 
 #include <vector>
 #include <array>
-#include <iostream>
-#include <format>
 
 using namespace gd;
 
@@ -18,7 +16,7 @@ std::array REQUIRED_EXTENSIONS = {
     vk::KHRSpirv14ExtensionName,
 };
 
-bool isDeviceSuitable(vk::raii::PhysicalDevice device)
+bool IsDeviceSuitable(vk::raii::PhysicalDevice device)
 {
     auto properties = device.getProperties();
     auto features = device.getFeatures();
@@ -38,25 +36,25 @@ bool isDeviceSuitable(vk::raii::PhysicalDevice device)
     return true;
 }
 
-vk::raii::PhysicalDevice pickPhysicalDevice(vk::raii::Instance &instance)
+vk::raii::PhysicalDevice PickPhysicalDevice(vk::raii::Instance &instance)
 {
     auto [result, devices] = instance.enumeratePhysicalDevices();
     if (result != vk::Result::eSuccess)
-        panic("failed to enumerate physical devices");
+        Panic("failed to enumerate physical devices");
     if (devices.size() == 0)
-        panic("no vulkan compatible GPU found");
+        Panic("no vulkan compatible GPU found");
 
     // TODO: Pick the most suitable device
     for (const auto &device : devices)
     {
-        if (isDeviceSuitable(device))
+        if (IsDeviceSuitable(device))
             return device;
     }
-    panic("failed to find a suitable GPU!");
+    Panic("failed to find a suitable GPU!");
 }
 
 /** Gets the index of the first queue family that supports graphics in a specific device. */
-u32 findGraphicsQueueFamily(vk::raii::PhysicalDevice device)
+u32 FindGraphicsQueueFamily(vk::raii::PhysicalDevice device)
 {
     auto familyProperties = device.getQueueFamilyProperties();
 
@@ -66,10 +64,10 @@ u32 findGraphicsQueueFamily(vk::raii::PhysicalDevice device)
         if (familyProperty.queueFlags & vk::QueueFlagBits::eGraphics)
             return i;
     }
-    panic("unreachable: Vulkan requires implementations to expose at least one graphics queue family");
+    Panic("unreachable: Vulkan requires implementations to expose at least one graphics queue family");
 }
 
-vk::raii::Device createLogicalDevice(vk::raii::PhysicalDevice physicalDevice, u32 graphicsIndex)
+vk::raii::Device CreateLogicalDevice(vk::raii::PhysicalDevice physicalDevice, u32 graphicsIndex)
 {
     using namespace vk;
 
@@ -96,13 +94,13 @@ vk::raii::Device createLogicalDevice(vk::raii::PhysicalDevice physicalDevice, u3
     auto createResult = physicalDevice.createDevice(deviceInfo);
     if (!createResult.has_value())
     {
-        panic("failed to create device");
+        Panic("failed to create device");
     }
 
     return std::move(*createResult);
 }
 
-vk::raii::CommandPool createCommandPool(vk::raii::Device &vkDevice, u32 graphicsIndex)
+vk::raii::CommandPool CreateCommandPool(vk::raii::Device &vkDevice, u32 graphicsIndex)
 {
     using namespace vk;
     CommandPoolCreateInfo createInfo;
@@ -112,40 +110,40 @@ vk::raii::CommandPool createCommandPool(vk::raii::Device &vkDevice, u32 graphics
     auto createResult = vkDevice.createCommandPool(createInfo);
     if (createResult.has_value())
         return std::move(*createResult);
-    panic("failed to create command pool");
+    Panic("failed to create command pool");
 }
 
 gd::Device::Device(vk::raii::Instance &instance, vk::raii::SurfaceKHR &surface)
 {
-    vkPhysicalDevice_ = pickPhysicalDevice(instance);
-    auto graphicsIndex = findGraphicsQueueFamily(vkPhysicalDevice_);
+    vkPhysicalDevice = PickPhysicalDevice(instance);
+    auto graphicsIndex = FindGraphicsQueueFamily(vkPhysicalDevice);
 
     // TODO: Consider different queue families for presentation
-    auto [surfaceSupportResult, surfaceSupport] = vkPhysicalDevice_.getSurfaceSupportKHR(graphicsIndex, surface);
+    auto [surfaceSupportResult, surfaceSupport] = vkPhysicalDevice.getSurfaceSupportKHR(graphicsIndex, surface);
     if (surfaceSupportResult != vk::Result::eSuccess)
-        panic("Failed to get surface support for physical device.");
+        Panic("Failed to get surface support for physical device.");
     if (surfaceSupport == vk::False)
-        panic("Selected physical device does not support presentation to the given surface.");
+        Panic("Selected physical device does not support presentation to the given surface.");
 
-    vkDevice_ = createLogicalDevice(vkPhysicalDevice_, graphicsIndex);
-    vkCommandPool_ = createCommandPool(vkDevice_, graphicsIndex);
-    vkGraphicsQueue_ = vkDevice_.getQueue(graphicsIndex, 0);
-    vkPresentQueue_ = vkGraphicsQueue_;
+    vkDevice = CreateLogicalDevice(vkPhysicalDevice, graphicsIndex);
+    vkCommandPool = CreateCommandPool(vkDevice, graphicsIndex);
+    vkGraphicsQueue = vkDevice.getQueue(graphicsIndex, 0);
+    vkPresentQueue = vkGraphicsQueue;
 }
 
 /** Gets information about the surface support for the physical device */
-SurfaceSupport gd::Device::getSurfaceSupport(vk::SurfaceKHR surface)
+SurfaceSupport gd::Device::QuerySurfaceSupport(vk::SurfaceKHR surface)
 {
-    auto capabilities = vkPhysicalDevice_.getSurfaceCapabilitiesKHR(surface);
-    auto formats = vkPhysicalDevice_.getSurfaceFormatsKHR(surface);
-    auto presentModes = vkPhysicalDevice_.getSurfacePresentModesKHR(surface);
+    auto capabilities = vkPhysicalDevice.getSurfaceCapabilitiesKHR(surface);
+    auto formats = vkPhysicalDevice.getSurfaceFormatsKHR(surface);
+    auto presentModes = vkPhysicalDevice.getSurfacePresentModesKHR(surface);
 
     if (capabilities.result != vk::Result::eSuccess)
-        panic("Failed to get surface capabilities for physical device.");
+        Panic("Failed to get surface capabilities for physical device.");
     if (formats.result != vk::Result::eSuccess)
-        panic("Failed to get surface formats for physical device.");
+        Panic("Failed to get surface formats for physical device.");
     if (presentModes.result != vk::Result::eSuccess)
-        panic("Failed to get surface present modes for physical device.");
+        Panic("Failed to get surface present modes for physical device.");
 
     return SurfaceSupport{
         .capabilities = *capabilities,
@@ -154,29 +152,29 @@ SurfaceSupport gd::Device::getSurfaceSupport(vk::SurfaceKHR surface)
     };
 }
 
-void gd::Device::resetFence(vk::raii::Fence &fence)
+void gd::Device::ResetFence(vk::raii::Fence &fence)
 {
-    vkDevice_.resetFences(*fence);
+    vkDevice.resetFences(*fence);
 }
 
-vk::Result gd::Device::waitForFence(vk::raii::Fence &fence)
+vk::Result gd::Device::WaitForFence(vk::raii::Fence &fence)
 {
-    return vkDevice_.waitForFences(*fence, vk::True, UINT64_MAX);
+    return vkDevice.waitForFences(*fence, vk::True, UINT64_MAX);
 }
 
-void gd::Device::submitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence)
+void gd::Device::SubmitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence)
 {
-    vkGraphicsQueue_.submit(submitInfo, fence);
+    vkGraphicsQueue.submit(submitInfo, fence);
 }
 
-void gd::Device::submitGraphics2(vk::SubmitInfo2 submitInfo, vk::Fence fence)
+void gd::Device::SubmitGraphics2(vk::SubmitInfo2 submitInfo, vk::Fence fence)
 {
-    vkGraphicsQueue_.submit2(submitInfo, fence);
+    vkGraphicsQueue.submit2(submitInfo, fence);
 }
 
-bool gd::Device::present(vk::PresentInfoKHR &presentInfo)
+bool gd::Device::Present(vk::PresentInfoKHR &presentInfo)
 {
-    auto result = vkPresentQueue_.presentKHR(presentInfo);
+    auto result = vkPresentQueue.presentKHR(presentInfo);
     switch (result)
     {
     case vk::Result::eSuccess:
@@ -185,65 +183,65 @@ bool gd::Device::present(vk::PresentInfoKHR &presentInfo)
     case vk::Result::eSuboptimalKHR:
         return false;
     default:
-        panic("failed to present swapchain image");
+        Panic("failed to present swapchain image");
     }
 }
 
-std::vector<vk::raii::CommandBuffer> gd::Device::allocateCommandBuffers(u32 count) const
+std::vector<vk::raii::CommandBuffer> gd::Device::AllocateCommandBuffers(u32 count) const
 {
     vk::CommandBufferAllocateInfo allocateInfo{
-        .commandPool = vkCommandPool_,
+        .commandPool = vkCommandPool,
         .level = vk::CommandBufferLevel::ePrimary,
         .commandBufferCount = count,
     };
-    return std::move(*vkDevice_.allocateCommandBuffers(allocateInfo));
+    return std::move(*vkDevice.allocateCommandBuffers(allocateInfo));
 }
 
-vk::raii::Semaphore gd::Device::createSemaphore() const
+vk::raii::Semaphore gd::Device::CreateSemaphore() const
 {
-    return std::move(*vkDevice_.createSemaphore({}));
+    return std::move(*vkDevice.createSemaphore({}));
 }
 
-vk::raii::Fence gd::Device::createFence(bool signaled) const
+vk::raii::Fence gd::Device::CreateFence(bool signaled) const
 {
-    return std::move(*vkDevice_.createFence({
+    return std::move(*vkDevice.createFence({
         .flags = signaled ? vk::FenceCreateFlagBits::eSignaled : vk::FenceCreateFlags{},
     }));
 }
 
-vk::raii::ShaderModule gd::Device::createShaderModule(const std::vector<u8> code) const
+vk::raii::ShaderModule gd::Device::CreateShaderModule(const std::vector<u8> code) const
 {
     vk::ShaderModuleCreateInfo createInfo{
         .codeSize = code.size(),
         .pCode = reinterpret_cast<const u32 *>(code.data()),
     };
-    return std::move(*vkDevice_.createShaderModule(createInfo));
+    return std::move(*vkDevice.createShaderModule(createInfo));
 }
 
-std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> gd::Device::alloc(usize size)
+std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> gd::Device::Alloc(usize size)
 {
     // Create buffer
     vk::BufferCreateInfo bufferInfo;
     bufferInfo.setSize(size);
     bufferInfo.setUsage(vk::BufferUsageFlagBits::eVertexBuffer);
     bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
-    auto bufferResult = vkDevice_.createBuffer(bufferInfo);
+    auto bufferResult = vkDevice.createBuffer(bufferInfo);
     if (!bufferResult.has_value())
-        panic("failed to create buffer");
+        Panic("failed to create buffer");
     auto buffer = std::move(*bufferResult);
 
     // Allocate memory
     auto requirements = buffer.getMemoryRequirements();
-    // Estamos usando HostCoherent para não precisar dar vkDevice_.mapFlushedMemoryRanges() depois de escrever na memória mapeada e vkDevice_.invalidateMappedMemoryRanges antes de ler da memória mapeada.
+    // Estamos usando HostCoherent para não precisar dar vkDevice.mapFlushedMemoryRanges() depois de escrever na memória mapeada e vkDevice.invalidateMappedMemoryRanges antes de ler da memória mapeada.
     // Mas isso tem desempenho pior e pode ser mudado depois.
-    auto memType = findMemoryType(requirements.memoryTypeBits,
+    auto memType = FindMemoryType(requirements.memoryTypeBits,
                                   vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     vk::MemoryAllocateInfo memInfo;
     memInfo.setAllocationSize(requirements.size);
     memInfo.setMemoryTypeIndex(memType);
-    auto memResult = vkDevice_.allocateMemory(memInfo);
+    auto memResult = vkDevice.allocateMemory(memInfo);
     if (!memResult.has_value())
-        panic("failed to alloc memory for buffer");
+        Panic("failed to alloc memory for buffer");
     auto memory = std::move(*memResult);
 
     // Vincula a memória alocada ao buffer. Sem isso, o buffer não tem
@@ -255,9 +253,9 @@ std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> gd::Device::alloc(usize siz
 
 // Existem heaps diferentes como VRAM e espaço de swap na RAM pra quando a VRAM acaba. São heaps diferentes.
 // Dentro de cada heap, existem tipos diferentes de memória.
-u32 gd::Device::findMemoryType(u32 supportedTypes, vk::MemoryPropertyFlags properties)
+u32 gd::Device::FindMemoryType(u32 supportedTypes, vk::MemoryPropertyFlags properties)
 {
-    auto memProps = vkPhysicalDevice_.getMemoryProperties2();
+    auto memProps = vkPhysicalDevice.getMemoryProperties2();
     for (u32 i = 0; i < memProps.memoryProperties.memoryTypeCount; i++)
     {
         if ((supportedTypes & (1 << i)) &&                                                       // Buffer suporta tipo i?
@@ -267,5 +265,5 @@ u32 gd::Device::findMemoryType(u32 supportedTypes, vk::MemoryPropertyFlags prope
         }
     }
 
-    panic("failed to find suitable memory type");
+    Panic("failed to find suitable memory type");
 }

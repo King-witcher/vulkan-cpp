@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------------
-#  Módulo: core  —  tipos e utilitários base (RustTypes.h, Panic.h)
+#  Módulo: core  —  tipos e utilitários base (rust_types.h, panic.h)
 #  É header-only (não há .cpp), então vira uma biblioteca INTERFACE: não gera
 #  binário algum, apenas propaga headers e requisitos para quem a consome.
 # ----------------------------------------------------------------------------
@@ -7,7 +7,7 @@ add_library(core INTERFACE)
 add_library(VkWizard::core ALIAS core)   # nome com namespace = padrão moderno de consumo
 
 # Expõe a pasta include/ a quem linkar o core (INTERFACE = só para consumidores).
-# Mantém os #include "RustTypes.h" / "Panic.h" existentes resolvendo, sem alterar o código.
+# Mantém os #include "rust_types.h" / "panic.h" existentes resolvendo, sem alterar o código.
 target_include_directories(core INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 

@@ -1,6 +1,6 @@
 #pragma once
 #include <vulkan/vulkan_raii.hpp>
-#include "Device.h"
+#include "device.h"
 #include <vector>
 
 namespace gd
@@ -8,9 +8,9 @@ namespace gd
     struct SwapchainImage
     {
     public:
-        vk::Semaphore getRenderReadySemaphore() const { return *renderFinished; }
-        vk::Image getImage() const { return image; }
-        vk::ImageView getImageView() const { return *imageView; }
+        vk::Semaphore RenderFinishedSemaphore() const { return *renderFinished; }
+        vk::Image Image() const { return image; }
+        vk::ImageView ImageView() const { return *imageView; }
 
     private:
         SwapchainImage(u32 index, vk::Image image, vk::raii::ImageView imageView, vk::raii::Semaphore imageAvailableSemaphore)
@@ -30,25 +30,25 @@ namespace gd
     public:
         Swapchain(Device &device, vk::raii::SurfaceKHR &surface, vk::SwapchainKHR oldSwapChain = nullptr);
 
-        SwapchainImage &acquireNextImage(const vk::Semaphore semaphore);
+        SwapchainImage &AcquireNextImage(const vk::Semaphore semaphore);
 
-        vk::Format imageFormat() const { return vkImageFormat_; }
-        vk::Extent2D extent() const { return extent_; }
-        vk::raii::SwapchainKHR &vkSwapChain() { return vkSwapChain_; }
-        vk::SwapchainKHR operator*() const { return *vkSwapChain_; }
-        void present(gd::SwapchainImage &image);
+        vk::Format ImageFormat() const { return vkImageFormat; }
+        vk::Extent2D Extent() const { return extent; }
+        vk::raii::SwapchainKHR &VkSwapChain() { return vkSwapChain; }
+        vk::SwapchainKHR operator*() const { return *vkSwapChain; }
+        void Present(gd::SwapchainImage &image);
 
     private:
-        Device &device_;
-        vk::SurfaceKHR surface_;
-        vk::Format vkImageFormat_;
-        vk::Extent2D extent_;
-        vk::raii::SwapchainKHR vkSwapChain_ = nullptr;
+        Device &device;
+        vk::SurfaceKHR surface;
+        vk::Format vkImageFormat;
+        vk::Extent2D extent;
+        vk::raii::SwapchainKHR vkSwapChain = nullptr;
         std::vector<SwapchainImage> swapchainImages;
 
-        void createImages(std::vector<vk::Image> images);
+        void CreateImages(std::vector<vk::Image> images);
 
         /** Create or recreate the swapchain. */
-        void recreate();
+        void Recreate();
     };
 } // namespace gd

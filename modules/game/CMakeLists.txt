@@ -1,11 +1,11 @@
 # ----------------------------------------------------------------------------
-#  Módulo: game  —  o executável final (ponto de entrada Main.cpp)
+#  Módulo: game  —  o executável final (ponto de entrada main.cc)
 # ----------------------------------------------------------------------------
 
 # Nome mantido como VkWizardVS para casar com o .vscode/launch.json
 # (build/<Config>/VkWizardVS.exe). Como NÃO sobrescrevemos o diretório de saída,
 # o gerador do Visual Studio coloca o .exe em build/Debug ou build/Release.
-add_executable(VkWizardVS Main.cpp)
+add_executable(VkWizardVS main.cc)
 
 # Só precisa do engine; Vulkan, SDL3 e core entram de carona (são PUBLIC no engine).
 target_link_libraries(VkWizardVS PRIVATE VkWizard::engine)

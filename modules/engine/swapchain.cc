@@ -1,12 +1,11 @@
-#include "Swapchain.h"
-#include "RustTypes.h"
-#include "Panic.h"
+#include "swapchain.h"
+#include "rust_types.h"
+#include "panic.h"
 
 #include <algorithm>
-#include "Input.h"
 using namespace std;
 
-vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const vector<vk::SurfaceFormatKHR> &formats)
+vk::SurfaceFormatKHR ChooseSwapSurfaceFormat(const vector<vk::SurfaceFormatKHR> &formats)
 {
     for (const auto &format : formats)
     {
@@ -18,7 +17,7 @@ vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const vector<vk::SurfaceFormatKHR> 
     return formats[0];
 }
 
-vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &presentModes)
+vk::PresentModeKHR ChooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &presentModes)
 {
     // for (const auto& mode : presentModes) {
     //	if (mode == vk::PresentModeKHR::eMailbox) {
@@ -28,17 +27,17 @@ vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &
     return vk::PresentModeKHR::eFifo;
 }
 
-vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities)
+vk::Extent2D ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities)
 {
     // If width and height are 0xFFFFFFFF, the surface size should be determined by the extent of the swapchain.
     // We are not supporting dynamic surface by now, so let's just discard this scenario.
     if ((capabilities.currentExtent.width | capabilities.currentExtent.height) == ~0)
-        panic("dynamic surface extent is not supported by this engine.");
+        Panic("dynamic surface extent is not supported by this engine.");
 
     return capabilities.currentExtent;
 }
 
-u32 chooseSwapImageCount(const vk::SurfaceCapabilitiesKHR &capabilities)
+u32 ChooseSwapImageCount(const vk::SurfaceCapabilitiesKHR &capabilities)
 {
     if (!capabilities.maxImageCount)
         return std::max(capabilities.minImageCount, 3u);
@@ -46,35 +45,35 @@ u32 chooseSwapImageCount(const vk::SurfaceCapabilitiesKHR &capabilities)
 }
 
 gd::Swapchain::Swapchain(Device &device, vk::raii::SurfaceKHR &surface, vk::SwapchainKHR oldSwapChain)
-    : device_(device), surface_(surface)
+    : device(device), surface(surface)
 {
-    recreate();
+    Recreate();
 }
 
-gd::SwapchainImage &gd::Swapchain::acquireNextImage(const vk::Semaphore imageAvailable)
+gd::SwapchainImage &gd::Swapchain::AcquireNextImage(const vk::Semaphore imageAvailable)
 {
-    auto [aquireResult, index] = vkSwapChain_.acquireNextImage(UINT64_MAX, imageAvailable, nullptr);
+    auto [aquireResult, index] = vkSwapChain.acquireNextImage(UINT64_MAX, imageAvailable, nullptr);
     switch (aquireResult)
     {
     case vk::Result::eErrorOutOfDateKHR:
     case vk::Result::eSuboptimalKHR:
-        recreate();
-        return acquireNextImage(imageAvailable); // Review it
+        Recreate();
+        return AcquireNextImage(imageAvailable); // Review it
     case vk::Result::eSuccess:
         break;
     default:
-        panic("failed to acquire swap chain image.");
+        Panic("failed to acquire swap chain image.");
     }
 
     return swapchainImages[index];
 }
 
-void gd::Swapchain::createImages(std::vector<vk::Image> images)
+void gd::Swapchain::CreateImages(std::vector<vk::Image> images)
 {
     swapchainImages.clear();
     vk::ImageViewCreateInfo viewInfo;
     viewInfo.setViewType(vk::ImageViewType::e2D);
-    viewInfo.setFormat(vkImageFormat_);
+    viewInfo.setFormat(vkImageFormat);
     viewInfo.components.r = vk::ComponentSwizzle::eIdentity;
     viewInfo.components.g = vk::ComponentSwizzle::eIdentity;
     viewInfo.components.b = vk::ComponentSwizzle::eIdentity;
@@ -88,35 +87,36 @@ void gd::Swapchain::createImages(std::vector<vk::Image> images)
     for (u32 i = 0; i < images.size(); i++)
     {
         viewInfo.setImage(images[i]);
-        auto createResult = device_.vkDevice().createImageView(viewInfo);
+        auto createResult = device.VkDevice().createImageView(viewInfo);
         if (!createResult.has_value())
-            panic("failed to create image view");
-        auto semaphore = device_.createSemaphore();
+            Panic("failed to create image view");
+        auto semaphore = device.CreateSemaphore();
 
         swapchainImages.push_back(gd::SwapchainImage(i, images[i], std::move(*createResult), std::move(semaphore)));
     }
 }
 
-void gd::Swapchain::recreate()
+void gd::Swapchain::Recreate()
 {
-    device_.waitIdle();
-    for (; input::minimized(); input::update())
-        ;
+    device.WaitIdle();
+    // TODO: Fix it
+    // for (; input::minimized(); input::update())
+    //     ;
 
-    auto swapChainSupport = device_.getSurfaceSupport(surface_);
-    auto format = chooseSwapSurfaceFormat(swapChainSupport.formats);
-    auto presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-    extent_ = chooseSwapExtent(swapChainSupport.capabilities);
-    vkImageFormat_ = format.format;
-    auto minImageCount = chooseSwapImageCount(swapChainSupport.capabilities);
+    auto swapChainSupport = device.QuerySurfaceSupport(surface);
+    auto format = ChooseSwapSurfaceFormat(swapChainSupport.formats);
+    auto presentMode = ChooseSwapPresentMode(swapChainSupport.presentModes);
+    extent = ChooseSwapExtent(swapChainSupport.capabilities);
+    vkImageFormat = format.format;
+    auto minImageCount = ChooseSwapImageCount(swapChainSupport.capabilities);
 
     vk::SwapchainCreateInfoKHR createInfo;
-    createInfo.setOldSwapchain(vkSwapChain_);
-    createInfo.setSurface(surface_); // used * before
+    createInfo.setOldSwapchain(vkSwapChain);
+    createInfo.setSurface(surface); // used * before
     createInfo.setMinImageCount(minImageCount);
-    createInfo.setImageFormat(vkImageFormat_);
+    createInfo.setImageFormat(vkImageFormat);
     createInfo.setImageColorSpace(format.colorSpace);
-    createInfo.setImageExtent(extent_);
+    createInfo.setImageExtent(extent);
     createInfo.setImageArrayLayers(1); // 1 because we are not doing stereoscopic 3D
     createInfo.setImageUsage(vk::ImageUsageFlagBits::eColorAttachment);
     createInfo.setImageSharingMode(vk::SharingMode::eExclusive);
@@ -125,27 +125,27 @@ void gd::Swapchain::recreate()
     createInfo.setPresentMode(presentMode);
     createInfo.setClipped(vk::True); // Clips pixels that are obscured by other windows. However, this may cause blur effects to bug.
 
-    auto createResult = device_.vkDevice().createSwapchainKHR(createInfo);
+    auto createResult = device.VkDevice().createSwapchainKHR(createInfo);
     if (!createResult.has_value())
-        panic("failed to create swapchain.");
-    vkSwapChain_ = std::move(*createResult);
+        Panic("failed to create swapchain.");
+    vkSwapChain = std::move(*createResult);
 
-    auto imagesResult = vkSwapChain_.getImages();
+    auto imagesResult = vkSwapChain.getImages();
     if (!imagesResult.has_value())
-        panic("failed to get swapchain images.");
+        Panic("failed to get swapchain images.");
 
-    createImages(*imagesResult);
+    CreateImages(*imagesResult);
 }
 
-void gd::Swapchain::present(gd::SwapchainImage &frame)
+void gd::Swapchain::Present(gd::SwapchainImage &frame)
 {
     vk::PresentInfoKHR presentInfo;
     auto semaphore = *frame.renderFinished;
-    auto swapChain = *vkSwapChain_;
+    auto swapChain = *vkSwapChain;
     presentInfo.setWaitSemaphores(semaphore);
     presentInfo.setSwapchains(swapChain);
     presentInfo.setImageIndices(frame.index);
 
-    if (!device_.present(presentInfo))
-        recreate();
+    if (!device.Present(presentInfo))
+        Recreate();
 }

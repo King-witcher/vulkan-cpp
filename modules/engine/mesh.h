@@ -4,7 +4,7 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
 
-#include "Pipeline.h"
+#include "pipeline.h"
 
 namespace gd
 {
@@ -16,7 +16,7 @@ namespace gd
       glm::vec3 position;
       glm::vec3 color;
 
-      static vk::VertexInputBindingDescription getBindingDescription()
+      static vk::VertexInputBindingDescription BindingDescription()
       {
         vk::VertexInputBindingDescription description;
         description.setBinding(0);
@@ -26,7 +26,7 @@ namespace gd
         return description;
       }
 
-      static std::array<vk::VertexInputAttributeDescription, 2> getAttributeDescriptions()
+      static std::array<vk::VertexInputAttributeDescription, 2> AttributeDescriptions()
 	  {
         vk::VertexInputAttributeDescription position;
         position.setLocation(0);

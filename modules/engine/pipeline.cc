@@ -1,19 +1,19 @@
-#include "Pipeline.h"
-#include "Panic.h"
-#include "RustTypes.h"
-#include "Mesh.h"
+#include "pipeline.h"
+#include "panic.h"
+#include "rust_types.h"
+#include "mesh.h"
 #include "vulkan/vulkan.hpp"
 
 #include <fstream>
 
 using namespace std;
 
-static vector<u8> readFile(const string &filename)
+static vector<u8> ReadFile(const string &filename)
 {
     ifstream file(filename, std::ios::binary | std::ios::ate);
     if (!file.is_open())
     {
-        panic("Failed to open file: " + filename);
+        Panic("Failed to open file: " + filename);
     }
     vector<u8> buffer(file.tellg());
     file.seekg(0, std::ios::beg);
@@ -23,12 +23,12 @@ static vector<u8> readFile(const string &filename)
 
 gd::Pipeline::Pipeline(Device &device, gd::Swapchain &swapchain, std::string shaderPath)
 {
-    auto &vkDevice = device.vkDevice();
-    auto shaderCode = readFile(shaderPath);
-    vkShaderModule_ = device.createShaderModule(shaderCode);
+    auto &vkDevice = device.VkDevice();
+    auto shaderCode = ReadFile(shaderPath);
+    auto shaderModule = device.CreateShaderModule(shaderCode);
 
-    auto bindingDescriptions = Mesh::Vertex::getBindingDescription();
-    auto attributeDescriptions = Mesh::Vertex::getAttributeDescriptions();
+    auto bindingDescriptions = Mesh::Vertex::BindingDescription();
+    auto attributeDescriptions = Mesh::Vertex::AttributeDescriptions();
 
     // Fixed functions
     vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
@@ -87,23 +87,25 @@ gd::Pipeline::Pipeline(Device &device, gd::Swapchain &swapchain, std::string sha
 
     // Required for dynamic rendering
     vk::PipelineRenderingCreateInfo pipelineRenderingInfo;
-    auto format = swapchain.imageFormat();
+    auto format = swapchain.ImageFormat();
     pipelineRenderingInfo.setColorAttachmentFormats(format);
 
     // Pipeline layout
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
-    vkPipelineLayout_ = std::move(*vkDevice.createPipelineLayout(pipelineLayoutInfo));
+    auto pipelineLayoutResult = vkDevice.createPipelineLayout(pipelineLayoutInfo);
+    if (!pipelineLayoutResult.has_value())
+        Panic("Failed to create pipeline layout");
 
     // Final pipeline create info
     std::vector<vk::PipelineShaderStageCreateInfo> stages = {
         {
             .stage = vk::ShaderStageFlagBits::eVertex,
-            .module = *vkShaderModule_,
+            .module = *shaderModule,
             .pName = "vertMain",
         },
         {
             .stage = vk::ShaderStageFlagBits::eFragment,
-            .module = *vkShaderModule_,
+            .module = *shaderModule,
             .pName = "fragMain",
         }};
     vk::GraphicsPipelineCreateInfo pipelineInfo;
@@ -116,8 +118,8 @@ gd::Pipeline::Pipeline(Device &device, gd::Swapchain &swapchain, std::string sha
     pipelineInfo.setPMultisampleState(&multisampling);
     pipelineInfo.setPColorBlendState(&colorBlending);
     pipelineInfo.setPDynamicState(&dynamicState);
-    pipelineInfo.setLayout(*vkPipelineLayout_);
+    pipelineInfo.setLayout(*pipelineLayoutResult);
 
     // Sem cache por enquanto
-    vkPipeline_ = std::move(*vkDevice.createGraphicsPipeline(nullptr, pipelineInfo));
+    vkPipeline = std::move(*vkDevice.createGraphicsPipeline(nullptr, pipelineInfo));
 }

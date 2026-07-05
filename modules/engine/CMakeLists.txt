@@ -3,15 +3,15 @@
 #  Biblioteca estática que junta o seu código de motor sobre core/Vulkan/SDL3.
 # ----------------------------------------------------------------------------
 
-# Coleta todos os .cpp de src/. CONFIGURE_DEPENDS faz o CMake reconfigurar
+# Coleta todos os .cc de src/. CONFIGURE_DEPENDS faz o CMake reconfigurar
 # automaticamente quando você adiciona/remove um arquivo de origem.
-file(GLOB ENGINE_SRC CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+file(GLOB ENGINE_SRC CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 
 add_library(engine STATIC ${ENGINE_SRC})
 add_library(VkWizard::engine ALIAS engine)
 
-# Headers públicos do engine (Engine.h, Window.h, ...). PUBLIC = visíveis para o
-# próprio engine E para quem o consome (o game). Preserva os #include "Engine.h"
+# Headers públicos do engine (engine.h, window.h, ...). PUBLIC = visíveis para o
+# próprio engine E para quem o consome (o game). Preserva os #include "engine.h"
 # etc. resolvendo, sem precisar mexer no código.
 target_include_directories(engine PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)

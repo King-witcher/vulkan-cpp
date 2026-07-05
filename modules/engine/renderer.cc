@@ -1,18 +1,18 @@
-#include "Renderer.h"
+#include "renderer.h"
 #include "vulkan/vulkan.hpp"
 
-void gd::RenderFrame::draw(vk::raii::Buffer &vertexBuffer, u32 count, gd::Pipeline &pipeline)
+void gd::RenderFrame::Draw(vk::raii::Buffer &vertexBuffer, u32 count, gd::Pipeline &pipeline)
 {
-    frameInFlight.commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.vkPipeline());
+    frameInFlight.commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.VkPipeline());
     // TODO: Experiment bindVertexBuffers2
     frameInFlight.commandBuffer.bindVertexBuffers(0, {vertexBuffer}, {0});
     frameInFlight.commandBuffer.draw(count, 1, 0, 0);
 }
 
-void gd::RenderFrame::beginRendering(vk::Extent2D extent)
+void gd::RenderFrame::BeginRendering(vk::Extent2D extent)
 {
     vk::RenderingAttachmentInfo colorAttachmentInfo;
-    colorAttachmentInfo.setImageView(swapchainImage.getImageView());
+    colorAttachmentInfo.setImageView(swapchainImage.ImageView());
     colorAttachmentInfo.setImageLayout(vk::ImageLayout::eColorAttachmentOptimal);
     colorAttachmentInfo.setLoadOp(vk::AttachmentLoadOp::eClear);
     colorAttachmentInfo.setStoreOp(vk::AttachmentStoreOp::eStore);
@@ -40,18 +40,18 @@ void gd::RenderFrame::beginRendering(vk::Extent2D extent)
     frameInFlight.commandBuffer.setScissor(
         0,
         vk::Rect2D{
-            .offset = vk::Offset2D{500, 0},
+            .offset = vk::Offset2D{0, 0},
             .extent = extent});
 }
 
-void gd::RenderFrame::endRendering()
+void gd::RenderFrame::EndRendering()
 {
     frameInFlight.commandBuffer.endRendering();
-    transitionPresentation();
+    TransitionPresentation();
     frameInFlight.commandBuffer.end();
 }
 
-void gd::RenderFrame::transitionRendering()
+void gd::RenderFrame::TransitionRendering()
 {
     vk::ImageMemoryBarrier2 barrier = {
         // What the transition should wait before running.
@@ -69,7 +69,7 @@ void gd::RenderFrame::transitionRendering()
         // Since we are using the same queue for everything, nothing needs to be transfered.
         .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-        .image = swapchainImage.getImage(),
+        .image = swapchainImage.Image(),
         .subresourceRange = {
             .aspectMask = vk::ImageAspectFlagBits::eColor,
             .baseMipLevel = 0,
@@ -85,7 +85,7 @@ void gd::RenderFrame::transitionRendering()
     frameInFlight.commandBuffer.pipelineBarrier2(dependencyInfo);
 }
 
-void gd::RenderFrame::transitionPresentation()
+void gd::RenderFrame::TransitionPresentation()
 {
     vk::ImageMemoryBarrier2 barrier = {
         // Waits for all Color Attachment Outputs to finish before transitioning back to present optimal layout.
@@ -100,7 +100,7 @@ void gd::RenderFrame::transitionPresentation()
         .newLayout = vk::ImageLayout::ePresentSrcKHR,
         .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-        .image = swapchainImage.getImage(),
+        .image = swapchainImage.Image(),
         .subresourceRange = {
             .aspectMask = vk::ImageAspectFlagBits::eColor,
             .baseMipLevel = 0,
@@ -116,32 +116,32 @@ void gd::RenderFrame::transitionPresentation()
     frameInFlight.commandBuffer.pipelineBarrier2(dependencyInfo);
 }
 
-gd::RenderFrame gd::Renderer::beginFrame()
+gd::RenderFrame gd::Renderer::BeginFrame()
 {
     auto &frameInFlight = frames[nextFrame];
 
-    device.waitForFence(frameInFlight.fence);
-    device.resetFence(frameInFlight.fence);
-    auto &swapchainImage = swapchain.acquireNextImage(frameInFlight.imageAvailable);
+    device.WaitForFence(frameInFlight.fence);
+    device.ResetFence(frameInFlight.fence);
+    auto &swapchainImage = swapchain.AcquireNextImage(frameInFlight.imageAvailable);
 
     frameInFlight.commandBuffer.reset();
 
     frameInFlight.commandBuffer.begin({});
     gd::RenderFrame renderFrame{frameInFlight, swapchainImage};
-    renderFrame.transitionRendering();
-    renderFrame.beginRendering(swapchain.extent());
+    renderFrame.TransitionRendering();
+    renderFrame.BeginRendering(swapchain.Extent());
 
     nextFrame = (nextFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
     return renderFrame;
 }
 
-void gd::Renderer::endFrame(gd::RenderFrame &renderFrame)
+void gd::Renderer::EndFrame(gd::RenderFrame &renderFrame)
 {
     auto &frameInFlight = renderFrame.frameInFlight;
-    renderFrame.endRendering();
+    renderFrame.EndRendering();
 
-    auto renderFinished = renderFrame.swapchainImage.getRenderReadySemaphore();
+    auto renderFinished = renderFrame.swapchainImage.RenderFinishedSemaphore();
 
     // Present to Swapchain
     vk::SemaphoreSubmitInfo waitSemaphore;
@@ -165,6 +165,6 @@ void gd::Renderer::endFrame(gd::RenderFrame &renderFrame)
     submitInfo.setWaitSemaphoreInfos(waitSemaphore);
     submitInfo.setSignalSemaphoreInfos(signalSemaphore);
 
-    device.submitGraphics2(submitInfo, frameInFlight.fence);
-    swapchain.present(renderFrame.swapchainImage);
+    device.SubmitGraphics2(submitInfo, frameInFlight.fence);
+    swapchain.Present(renderFrame.swapchainImage);
 }

@@ -1,8 +1,8 @@
-#include "Engine.h"
+#include "engine.h"
 
 int main()
 {
 	gd::Engine engine;
-	engine.run();
+	engine.Run();
 	return 0;
 }

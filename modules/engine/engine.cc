@@ -1,13 +1,12 @@
 #include <iostream>
 
-#include "Engine.h"
-#include "RustTypes.h"
-#include "Input.h"
-#include "Mesh.h"
+#include "engine.h"
+#include "rust_types.h"
+#include "mesh.h"
 
 using namespace gd;
 
-void gd::Engine::run()
+void gd::Engine::Run()
 {
     std::vector<gd::Mesh::Vertex> vertices = {
         {{0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
@@ -15,22 +14,22 @@ void gd::Engine::run()
         {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
     };
     auto dataSize = vertices.size() * sizeof(gd::Mesh::Vertex);
-    auto [buffer, mem] = device_.alloc(dataSize);
+    auto [buffer, mem] = device.Alloc(dataSize);
     auto ptr = *mem.mapMemory(0, dataSize);
     memcpy(ptr, vertices.data(), dataSize);
     mem.unmapMemory();
     for (;;)
     {
-        draw(buffer, vertices.size());
-        input::update();
-        if (input::shouldQuit())
+        Draw(buffer, vertices.size());
+        input.Update();
+        if (input.ShouldQuit())
             break;
     }
-    device_.vkDevice().waitIdle();
+    device.VkDevice().waitIdle();
     std::cout << "Exiting engine loop." << std::endl;
 }
 
-vk::raii::Instance gd::Engine::createInstance() const
+vk::raii::Instance gd::Engine::CreateInstance() const
 {
     vk::ApplicationInfo appInfo;
     appInfo.setPApplicationName("VkWizard");
@@ -46,26 +45,26 @@ vk::raii::Instance gd::Engine::createInstance() const
     auto layers = std::vector<const char *>{};
 #endif
 
-    auto requiredExtensions = window_.getRequiredVulkanExtensions();
+    auto requiredExtensions = window.RequiredVulkanExtensions();
     // TODO: check for supported extensions
     vk::InstanceCreateInfo createInfo{};
     createInfo.setPApplicationInfo(&appInfo);
     createInfo.setPEnabledLayerNames(layers);
     createInfo.setPEnabledExtensionNames(requiredExtensions);
 
-    auto instance = std::move(*vkContext_.createInstance(createInfo));
+    auto instance = std::move(*vkContext.createInstance(createInfo));
     std::cout << "Vulkan instance created." << std::endl;
     return instance;
 }
 
-void gd::Engine::draw(vk::raii::Buffer &vertexBuffer, u32 vertices)
+void gd::Engine::Draw(vk::raii::Buffer &vertexBuffer, u32 vertices)
 {
-    auto renderFrame = renderer.beginFrame();
-    renderFrame.draw(vertexBuffer, vertices, pipeline_);
-    renderer.endFrame(renderFrame);
+    auto renderFrame = renderer.BeginFrame();
+    renderFrame.Draw(vertexBuffer, vertices, pipeline);
+    renderer.EndFrame(renderFrame);
 }
 
 gd::Engine::Engine()
 {
-    window_.setPosition(-1400, 200);
+    window.SetPosition(-1400, 200);
 }
