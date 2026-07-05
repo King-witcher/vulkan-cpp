@@ -14,7 +14,6 @@ void gd::Engine::run()
         {{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
         {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
     };
-    gd::Mesh model(vertices, pipeline_);
     auto dataSize = vertices.size() * sizeof(gd::Mesh::Vertex);
     auto [buffer, mem] = device_.alloc(dataSize);
     auto ptr = *mem.mapMemory(0, dataSize);

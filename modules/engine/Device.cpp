@@ -42,9 +42,9 @@ vk::raii::PhysicalDevice pickPhysicalDevice(vk::raii::Instance &instance)
 {
     auto [result, devices] = instance.enumeratePhysicalDevices();
     if (result != vk::Result::eSuccess)
-        throw std::runtime_error("failed to enumerate physical devices");
+        panic("failed to enumerate physical devices");
     if (devices.size() == 0)
-        throw std::runtime_error("no vulkan compatible GPU found");
+        panic("no vulkan compatible GPU found");
 
     // TODO: Pick the most suitable device
     for (const auto &device : devices)
@@ -52,7 +52,7 @@ vk::raii::PhysicalDevice pickPhysicalDevice(vk::raii::Instance &instance)
         if (isDeviceSuitable(device))
             return device;
     }
-    throw std::runtime_error("failed to find a suitable GPU!");
+    panic("failed to find a suitable GPU!");
 }
 
 /** Gets the index of the first queue family that supports graphics in a specific device. */
@@ -267,5 +267,5 @@ u32 gd::Device::findMemoryType(u32 supportedTypes, vk::MemoryPropertyFlags prope
         }
     }
 
-    throw std::runtime_error("failed to find suitable memory type");
+    panic("failed to find suitable memory type");
 }

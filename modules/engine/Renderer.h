@@ -4,7 +4,7 @@
 
 #include "FrameInFlight.h"
 #include "Device.h"
-#include "SwapChain.h"
+#include "Swapchain.h"
 #include "Pipeline.h"
 #include "vulkan/vulkan.hpp"
 

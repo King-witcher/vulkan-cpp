@@ -1,13 +1,12 @@
-#include "SwapChain.h"
+#include "Swapchain.h"
 #include "RustTypes.h"
 #include "Panic.h"
 
-#include <iostream>
 #include <algorithm>
 #include "Input.h"
 using namespace std;
 
-vk::SurfaceFormatKHR chooseSwapSurfaceFormat(vector<vk::SurfaceFormatKHR> formats)
+vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const vector<vk::SurfaceFormatKHR> &formats)
 {
     for (const auto &format : formats)
     {
@@ -19,7 +18,7 @@ vk::SurfaceFormatKHR chooseSwapSurfaceFormat(vector<vk::SurfaceFormatKHR> format
     return formats[0];
 }
 
-vk::PresentModeKHR chooseSwapPresentMode(std::vector<vk::PresentModeKHR> presentModes)
+vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &presentModes)
 {
     // for (const auto& mode : presentModes) {
     //	if (mode == vk::PresentModeKHR::eMailbox) {
@@ -29,7 +28,7 @@ vk::PresentModeKHR chooseSwapPresentMode(std::vector<vk::PresentModeKHR> present
     return vk::PresentModeKHR::eFifo;
 }
 
-vk::Extent2D chooseSwapExtent(vk::SurfaceCapabilitiesKHR capabilities)
+vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities)
 {
     // If width and height are 0xFFFFFFFF, the surface size should be determined by the extent of the swapchain.
     // We are not supporting dynamic surface by now, so let's just discard this scenario.
@@ -39,7 +38,7 @@ vk::Extent2D chooseSwapExtent(vk::SurfaceCapabilitiesKHR capabilities)
     return capabilities.currentExtent;
 }
 
-u32 chooseSwapImageCount(vk::SurfaceCapabilitiesKHR &capabilities)
+u32 chooseSwapImageCount(const vk::SurfaceCapabilitiesKHR &capabilities)
 {
     if (!capabilities.maxImageCount)
         return std::max(capabilities.minImageCount, 3u);

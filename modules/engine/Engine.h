@@ -5,7 +5,7 @@
 #include "Renderer.h"
 #include "Window.h"
 #include "Device.h"
-#include "SwapChain.h"
+#include "Swapchain.h"
 #include "Pipeline.h"
 #include "FrameInFlight.h"
 

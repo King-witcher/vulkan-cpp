@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan_raii.hpp>
 #include "Device.h"
-#include "SwapChain.h"
+#include "Swapchain.h"
 
 #include <string>
 

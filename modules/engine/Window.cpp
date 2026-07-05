@@ -1,4 +1,5 @@
 #include "Window.h"
+#include "Panic.h"
 #include <SDL3/SDL_vulkan.h>
 
 gd::Window::Window(const char *title)
@@ -16,7 +17,7 @@ vk::raii::SurfaceKHR gd::Window::getVulkanSurface(vk::raii::Instance &instance) 
 	VkSurfaceKHR surface;
 	if (!SDL_Vulkan_CreateSurface(window_, *instance, nullptr, &surface))
 	{
-		throw std::runtime_error("Failed to create Vulkan surface.");
+		panic("Failed to create Vulkan surface.");
 	}
 	return vk::raii::SurfaceKHR(instance, surface);
 }
