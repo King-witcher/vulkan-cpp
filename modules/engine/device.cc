@@ -29,6 +29,26 @@ void InspectDevice(vk::raii::PhysicalDevice &device)
          << properties.limits.maxMemoryAllocationCount << endl;
     cout << "Memory heaps: " << memProperties.memoryHeapCount << endl;
     cout << "Memory types: " << memProperties.memoryTypeCount << endl;
+
+    for (u32 heapIndex = 0; heapIndex < memProperties.memoryHeapCount;
+         heapIndex++)
+    {
+        auto &heap = memProperties.memoryHeaps[heapIndex];
+        cout << "  Heap " << heapIndex << ": "
+             << (heap.size / (1024.0 * 1024.0 * 1024.0))
+             << " GB, flags: " << vk::to_string(heap.flags) << endl;
+
+        for (u32 typeIndex = 0; typeIndex < memProperties.memoryTypeCount;
+             typeIndex++)
+        {
+            auto &type = memProperties.memoryTypes[typeIndex];
+            if (type.heapIndex != heapIndex)
+                continue;
+
+            cout << "    Memory type " << typeIndex << ": "
+                 << vk::to_string(type.propertyFlags) << endl;
+        }
+    }
 }
 
 bool IsDeviceSuitable(vk::raii::PhysicalDevice device)

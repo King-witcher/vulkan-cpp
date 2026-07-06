@@ -31,6 +31,7 @@ namespace gd
         CreateShaderModule(const std::vector<u8> code) const;
 
         vk::raii::Device &VkDevice() { return vkDevice; }
+        vk::raii::PhysicalDevice &PhysicalDevice() { return vkPhysicalDevice; }
         vk::raii::CommandPool &VkCommandPool() { return vkCommandPool; }
         std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory>
         Allocate(usize size);

@@ -33,4 +33,4 @@ target_compile_definitions(engine PUBLIC
 # Sendo PUBLIC, o game herda Vulkan/SDL3/core de graça só por linkar o engine.
 target_link_libraries(engine
     PUBLIC VkWizard::core SDL3::SDL3 glm::glm
-    PRIVATE Vulkan::Vulkan)
+    PRIVATE Vulkan::Vulkan GPUOpen::VulkanMemoryAllocator)

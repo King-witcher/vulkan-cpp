@@ -77,6 +77,13 @@ target_compile_definitions(glm INTERFACE
     GLM_FORCE_DEPTH_ZERO_TO_ONE
     GLM_FORCE_RADIANS)
 
+# VMA
+FetchContent_Declare(VMA
+    GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+    GIT_TAG        v3.4.0            # fixe uma tag p/ builds reprodutíveis
+    GIT_SHALLOW    TRUE)
+FetchContent_MakeAvailable(VMA)
+
 # após esta linha existe o alvo glm::glm
 
 # ---- Módulos (ordem = de baixo para cima na pilha de dependências) ---------

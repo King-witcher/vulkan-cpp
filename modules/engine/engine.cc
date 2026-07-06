@@ -2,6 +2,7 @@
 
 #include "device.h"
 #include "input.h"
+#include "memory.h"
 #include "renderer.h"
 #include "swapchain.h"
 #include "window.h"
@@ -51,6 +52,8 @@ namespace gd
         vk::raii::SurfaceKHR vkSurface = window.VulkanSurface(vkInstance);
 
         Device device{vkInstance, vkSurface};
+        Allocator allocator{vkInstance, device.PhysicalDevice(),
+                            device.VkDevice()};
         Swapchain swapchain{device, vkSurface};
         Input input{};
         Renderer renderer{device, swapchain};
