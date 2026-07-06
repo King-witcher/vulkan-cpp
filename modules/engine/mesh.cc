@@ -12,7 +12,7 @@ namespace gd
         : vertices(vertices)
     {
         auto size = vertices.size() * sizeof(Vertex);
-        auto [buffer, memory] = device.Alloc(size);
+        auto [buffer, memory] = device.Allocate(size);
 
         auto [ptrResult, ptr] = memory.mapMemory(0, size);
         if (ptrResult != vk::Result::eSuccess)

@@ -23,14 +23,17 @@ namespace gd
         void SubmitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence);
         void SubmitGraphics2(vk::SubmitInfo2 submitInfo, vk::Fence fence);
         bool Present(vk::PresentInfoKHR &presentInfo);
-        std::vector<vk::raii::CommandBuffer> AllocateCommandBuffers(u32 count) const;
+        std::vector<vk::raii::CommandBuffer>
+        AllocateCommandBuffers(u32 count) const;
         vk::raii::Semaphore CreateSemaphore() const;
         vk::raii::Fence CreateFence(bool signaled = true) const;
-        vk::raii::ShaderModule CreateShaderModule(const std::vector<u8> code) const;
+        vk::raii::ShaderModule
+        CreateShaderModule(const std::vector<u8> code) const;
 
         vk::raii::Device &VkDevice() { return vkDevice; }
         vk::raii::CommandPool &VkCommandPool() { return vkCommandPool; }
-        std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> Alloc(usize size);
+        std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory>
+        Allocate(usize size);
         void WaitIdle() const { vkDevice.waitIdle(); }
 
     private:

@@ -16,6 +16,21 @@ std::array REQUIRED_EXTENSIONS = {
     vk::KHRSpirv14ExtensionName,
 };
 
+void InspectDevice(vk::raii::PhysicalDevice &device)
+{
+    using namespace std;
+
+    auto properties = device.getProperties2().properties;
+    auto memProperties = device.getMemoryProperties2().memoryProperties;
+
+    cout << "Found device: " << properties.deviceName << " - "
+         << properties.deviceID << endl;
+    cout << "Max memory allocation count: "
+         << properties.limits.maxMemoryAllocationCount << endl;
+    cout << "Memory heaps: " << memProperties.memoryHeapCount << endl;
+    cout << "Memory types: " << memProperties.memoryTypeCount << endl;
+}
+
 bool IsDeviceSuitable(vk::raii::PhysicalDevice device)
 {
     auto properties = device.getProperties();
@@ -122,6 +137,9 @@ vk::raii::CommandPool CreateCommandPool(vk::raii::Device &vkDevice,
 gd::Device::Device(vk::raii::Instance &instance, vk::raii::SurfaceKHR &surface)
 {
     vkPhysicalDevice = PickPhysicalDevice(instance);
+#if _DEBUG
+    InspectDevice(vkPhysicalDevice);
+#endif
     auto graphicsIndex = FindGraphicsQueueFamily(vkPhysicalDevice);
 
     // TODO: Consider different queue families for presentation
@@ -230,7 +248,7 @@ gd::Device::CreateShaderModule(const std::vector<u8> code) const
 }
 
 std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory>
-gd::Device::Alloc(usize size)
+gd::Device::Allocate(usize size)
 {
     // Create buffer
     vk::BufferCreateInfo bufferInfo;
