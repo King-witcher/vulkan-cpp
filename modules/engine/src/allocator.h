@@ -48,8 +48,7 @@ namespace gd
     class Allocator
     {
     public:
-        Allocator(vk::raii::Instance &, vk::raii::PhysicalDevice &,
-                  vk::raii::Device &);
+        Allocator(vk::Instance, vk::PhysicalDevice, vk::Device);
         Allocator(Allocator &) = delete;
         Allocator &operator=(Allocator &) = delete;
         ~Allocator();

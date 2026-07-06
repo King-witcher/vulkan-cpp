@@ -13,7 +13,7 @@ namespace gd
         Pipeline(Device &device, vk::Format imageFormat, std::string shaderPath);
 
         // Must be bound in a renderpass
-        vk::raii::Pipeline &VkPipeline() { return vkPipeline; }
+        vk::Pipeline VkPipeline() { return *vkPipeline; }
 
     private:
         vk::raii::Pipeline vkPipeline = nullptr;

@@ -154,7 +154,7 @@ vk::raii::CommandPool CreateCommandPool(vk::raii::Device &vkDevice,
     Panic("failed to create command pool");
 }
 
-gd::Device::Device(vk::raii::Instance &instance, vk::raii::SurfaceKHR &surface)
+gd::Device::Device(vk::raii::Instance &instance, vk::SurfaceKHR surface)
 {
     vkPhysicalDevice = PickPhysicalDevice(instance);
 #if _DEBUG
@@ -198,14 +198,14 @@ SurfaceSupport gd::Device::QuerySurfaceSupport(vk::SurfaceKHR surface)
     };
 }
 
-void gd::Device::ResetFence(vk::raii::Fence &fence)
+void gd::Device::ResetFence(vk::Fence fence)
 {
-    vkDevice.resetFences(*fence);
+    vkDevice.resetFences(fence);
 }
 
-vk::Result gd::Device::WaitForFence(vk::raii::Fence &fence)
+vk::Result gd::Device::WaitForFence(vk::Fence fence)
 {
-    return vkDevice.waitForFences(*fence, vk::True, UINT64_MAX);
+    return vkDevice.waitForFences(fence, vk::True, UINT64_MAX);
 }
 
 void gd::Device::SubmitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence)

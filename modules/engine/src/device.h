@@ -15,11 +15,11 @@ namespace gd
     class Device
     {
     public:
-        Device(vk::raii::Instance &instance, vk::raii::SurfaceKHR &surface);
+        Device(vk::raii::Instance &instance, vk::SurfaceKHR surface);
 
         SurfaceSupport QuerySurfaceSupport(vk::SurfaceKHR surface);
-        void ResetFence(vk::raii::Fence &fence);
-        vk::Result WaitForFence(vk::raii::Fence &fence);
+        void ResetFence(vk::Fence fence);
+        vk::Result WaitForFence(vk::Fence fence);
         void SubmitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence);
         void SubmitGraphics2(vk::SubmitInfo2 submitInfo, vk::Fence fence);
         bool Present(vk::PresentInfoKHR &presentInfo);
@@ -31,8 +31,8 @@ namespace gd
         CreateShaderModule(const std::vector<u8> code) const;
 
         vk::raii::Device &VkDevice() { return vkDevice; }
-        vk::raii::PhysicalDevice &PhysicalDevice() { return vkPhysicalDevice; }
-        vk::raii::CommandPool &VkCommandPool() { return vkCommandPool; }
+        vk::PhysicalDevice PhysicalDevice() { return *vkPhysicalDevice; }
+        vk::CommandPool VkCommandPool() { return *vkCommandPool; }
         std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory>
         Allocate(usize size);
         void WaitIdle() const { vkDevice.waitIdle(); }

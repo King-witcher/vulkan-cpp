@@ -28,13 +28,13 @@ namespace gd
     class Swapchain
     {
     public:
-        Swapchain(Device &device, vk::raii::SurfaceKHR &surface, vk::SwapchainKHR oldSwapChain = nullptr);
+        Swapchain(Device &device, vk::SurfaceKHR surface, vk::SwapchainKHR oldSwapChain = nullptr);
 
         SwapchainImage &AcquireNextImage(const vk::Semaphore semaphore);
 
         vk::Format ImageFormat() const { return vkImageFormat; }
         vk::Extent2D Extent() const { return extent; }
-        vk::raii::SwapchainKHR &VkSwapChain() { return vkSwapChain; }
+        vk::SwapchainKHR VkSwapChain() { return *vkSwapChain; }
         vk::SwapchainKHR operator*() const { return *vkSwapChain; }
         void Present(gd::SwapchainImage &image);
 

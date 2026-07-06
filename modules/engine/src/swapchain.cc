@@ -44,7 +44,7 @@ u32 ChooseSwapImageCount(const vk::SurfaceCapabilitiesKHR &capabilities)
     return std::clamp(3u, capabilities.minImageCount, capabilities.maxImageCount);
 }
 
-gd::Swapchain::Swapchain(Device &device, vk::raii::SurfaceKHR &surface, vk::SwapchainKHR oldSwapChain)
+gd::Swapchain::Swapchain(Device &device, vk::SurfaceKHR surface, vk::SwapchainKHR oldSwapChain)
     : device(device), surface(surface)
 {
     Recreate();

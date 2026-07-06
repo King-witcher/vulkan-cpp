@@ -78,10 +78,16 @@ target_compile_definitions(glm INTERFACE
     GLM_FORCE_RADIANS)
 
 # VMA
+# SYSTEM: trata os headers do VMA como system headers (add_subdirectory SYSTEM).
+# O clang não emite warnings de system headers, então os ~900 avisos
+# -Wnullability-completeness que o vk_mem_alloc.h dispara ao compilar sua
+# implementação (VMA_IMPLEMENTATION) somem — sem silenciar os do seu próprio
+# código. Requer CMake >= 3.25 (temos 3.28 no mínimo).
 FetchContent_Declare(VMA
     GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
     GIT_TAG        v3.4.0            # fixe uma tag p/ builds reprodutíveis
-    GIT_SHALLOW    TRUE)
+    GIT_SHALLOW    TRUE
+    SYSTEM)
 FetchContent_MakeAvailable(VMA)
 
 # após esta linha existe o alvo glm::glm

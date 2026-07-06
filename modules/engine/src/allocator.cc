@@ -1,8 +1,8 @@
-#include "panic.h"
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 #include "vulkan/vulkan.hpp"
 
+#include "panic.h"
 #include "allocator.h"
 
 namespace gd
@@ -21,14 +21,13 @@ namespace gd
         return vk::Result{vkResult};
     }
 
-    Allocator::Allocator(vk::raii::Instance &instance,
-                         vk::raii::PhysicalDevice &physicalDevice,
-                         vk::raii::Device &device)
+    Allocator::Allocator(vk::Instance instance,
+                         vk::PhysicalDevice physicalDevice, vk::Device device)
     {
         VmaAllocatorCreateInfo info{};
-        info.instance = *instance;
-        info.physicalDevice = *physicalDevice;
-        info.device = *device;
+        info.instance = instance;
+        info.physicalDevice = physicalDevice;
+        info.device = device;
         info.vulkanApiVersion = VK_API_VERSION_1_4;
 
         if (vmaCreateAllocator(&info, &vmaAllocator))
@@ -39,6 +38,8 @@ namespace gd
     {
         VmaAllocationCreateInfo allocInfo{};
         allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+        allocInfo.flags =
+            VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
         VkBuffer vkBuffer;
         VmaAllocation allocation;
         auto result =
