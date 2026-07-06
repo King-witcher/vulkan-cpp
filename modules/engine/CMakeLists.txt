@@ -5,7 +5,7 @@
 
 # Coleta todos os .cc de src/. CONFIGURE_DEPENDS faz o CMake reconfigurar
 # automaticamente quando você adiciona/remove um arquivo de origem.
-file(GLOB ENGINE_SRC CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
+file(GLOB ENGINE_SRC CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc)
 
 add_library(engine STATIC ${ENGINE_SRC})
 add_library(VkWizard::engine ALIAS engine)
@@ -15,7 +15,7 @@ add_library(VkWizard::engine ALIAS engine)
 # etc. resolvendo, sem precisar mexer no código.
 target_include_directories(engine
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/include
-    PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+    PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/src)
 
 # (O padrão C++26 vem de CMAKE_CXX_STANDARD, definido no CMakeLists raiz.)
 

@@ -1,7 +1,7 @@
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 
-#include "memory.h"
+#include "allocator.h"
 
 namespace gd
 {

@@ -2,7 +2,7 @@
 
 #include "device.h"
 #include "input.h"
-#include "memory.h"
+#include "allocator.h"
 #include "renderer.h"
 #include "swapchain.h"
 #include "window.h"
