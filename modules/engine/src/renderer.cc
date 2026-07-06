@@ -152,8 +152,8 @@ void gd::Renderer::DrawScene(gd::RenderFrame &frame,
 
     for (auto &mesh : scene)
     {
-        commandBuffer.bindVertexBuffers(0, {mesh.vertexBuffer}, {0});
-        commandBuffer.draw(mesh.vertices.size(), 1, 0, 0);
+        commandBuffer.bindVertexBuffers(0, {mesh.buffer.VkBuffer()}, {0});
+        commandBuffer.draw(mesh.vertexCount, 1, 0, 0);
     }
 }
 

@@ -30,8 +30,8 @@ namespace gd
             };
 
             std::vector<gd::Mesh> meshes;
-            meshes.emplace_back(device, vertices1);
-            meshes.emplace_back(device, vertices2);
+            meshes.emplace_back(allocator, vertices1);
+            meshes.emplace_back(allocator, vertices2);
 
             for (;;)
             {

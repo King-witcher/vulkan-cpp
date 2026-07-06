@@ -1,26 +1,32 @@
 #include "mesh.h"
-#include "device.h"
 #include "panic.h"
 #include "vertex.h"
+#include "allocator.h"
 #include "vulkan/vulkan.hpp"
-#include <cstring>
 #include <vector>
 
 namespace gd
 {
-    Mesh::Mesh(gd::Device &device, std::vector<gd::Vertex> vertices)
-        : vertices(vertices)
+    Mesh::Mesh(gd::Allocator &allocator,
+               const std::vector<gd::Vertex> &vertices)
+        : vertexCount(vertices.size()),
+          buffer(MakeVertexBuffer(allocator, vertices))
     {
-        auto size = vertices.size() * sizeof(Vertex);
-        auto [buffer, memory] = device.Allocate(size);
+    }
 
-        auto [ptrResult, ptr] = memory.mapMemory(0, size);
-        if (ptrResult != vk::Result::eSuccess)
-            Panic("failed to map memory");
-        memcpy(ptr, vertices.data(), size);
-        memory.unmapMemory();
+    gd::Buffer Mesh::MakeVertexBuffer(gd::Allocator &allocator,
+                                      const std::vector<gd::Vertex> &vertices)
+    {
+        vk::BufferCreateInfo bufferInfo;
+        bufferInfo.setSize(vertices.size() * sizeof(Vertex));
+        bufferInfo.setUsage(vk::BufferUsageFlagBits::eVertexBuffer);
+        bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
 
-        vertexBuffer = std::move(buffer);
-        deviceMemory = std::move(memory);
+        auto allocated = allocator.Allocate(bufferInfo);
+        if (allocated.result != vk::Result::eSuccess)
+            Panic("Failed to allocate buffer");
+
+        allocated.value.Write(vertices);
+        return std::move(allocated.value);
     }
 } // namespace gd

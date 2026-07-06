@@ -3,7 +3,9 @@
 #include <glm/glm.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
-#include "device.h"
+#include "rust_types.h"
+
+#include "allocator.h"
 #include "vertex.h"
 
 namespace gd
@@ -13,12 +15,15 @@ namespace gd
         friend class Renderer;
 
     public:
-        Mesh(gd::Device &device, const std::vector<Vertex> vertices);
+        Mesh(gd::Allocator &, const std::vector<Vertex> &);
 
-        std::vector<Vertex> vertices;
+        u32 vertexCount;
 
     private:
-        vk::raii::Buffer vertexBuffer = nullptr;
+        static gd::Buffer MakeVertexBuffer(gd::Allocator &,
+                                           const std::vector<Vertex> &);
+
+        gd::Buffer buffer;
         // TODO: Review it. There is an allocation limit.
         vk::raii::DeviceMemory deviceMemory = nullptr;
     };

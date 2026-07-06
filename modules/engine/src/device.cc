@@ -295,7 +295,7 @@ gd::Device::Allocate(usize size)
     memInfo.setMemoryTypeIndex(memType);
     auto memResult = vkDevice.allocateMemory(memInfo);
     if (!memResult.has_value())
-        Panic("failed to alloc memory for buffer");
+        Panic("failed to allocate memory for buffer");
     auto memory = std::move(*memResult);
 
     // Vincula a memória alocada ao buffer. Sem isso, o buffer não tem
