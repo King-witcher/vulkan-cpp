@@ -88,20 +88,26 @@ vk::raii::PhysicalDevice PickPhysicalDevice(vk::raii::Instance &instance)
     Panic("failed to find a suitable GPU!");
 }
 
-/** Gets the index of the first queue family that supports graphics in a
- * specific device. */
-u32 FindGraphicsQueueFamily(vk::raii::PhysicalDevice device)
+u32 FindGraphicsQueueFamily(vk::raii::PhysicalDevice &device,
+                            vk::SurfaceKHR surface)
 {
     auto familyProperties = device.getQueueFamilyProperties();
 
     for (u32 i = 0; i < familyProperties.size(); i++)
     {
-        auto familyProperty = familyProperties[i];
-        if (familyProperty.queueFlags & vk::QueueFlagBits::eGraphics)
+        if (!(familyProperties[i].queueFlags & vk::QueueFlagBits::eGraphics))
+            continue;
+
+        auto [result, presentSupported] =
+            device.getSurfaceSupportKHR(i, surface);
+        if (result != vk::Result::eSuccess)
+            Panic("failed to query surface support for queue family");
+
+        if (presentSupported == vk::True)
             return i;
     }
-    Panic("unreachable: Vulkan requires implementations to expose at least one "
-          "graphics queue family");
+    Panic("no queue family supports both graphics and presentation to the "
+          "given surface");
 }
 
 vk::raii::Device CreateLogicalDevice(vk::raii::PhysicalDevice physicalDevice,
@@ -160,16 +166,7 @@ gd::Device::Device(vk::raii::Instance &instance, vk::SurfaceKHR surface)
 #if _DEBUG
     InspectDevice(vkPhysicalDevice);
 #endif
-    auto graphicsIndex = FindGraphicsQueueFamily(vkPhysicalDevice);
-
-    // TODO: Consider different queue families for presentation
-    auto [surfaceSupportResult, surfaceSupport] =
-        vkPhysicalDevice.getSurfaceSupportKHR(graphicsIndex, surface);
-    if (surfaceSupportResult != vk::Result::eSuccess)
-        Panic("Failed to get surface support for physical device.");
-    if (surfaceSupport == vk::False)
-        Panic("Selected physical device does not support presentation to the "
-              "given surface.");
+    auto graphicsIndex = FindGraphicsQueueFamily(vkPhysicalDevice, surface);
 
     vkDevice = CreateLogicalDevice(vkPhysicalDevice, graphicsIndex);
     vkCommandPool = CreateCommandPool(vkDevice, graphicsIndex);
