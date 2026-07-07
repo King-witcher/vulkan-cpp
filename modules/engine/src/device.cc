@@ -205,31 +205,6 @@ vk::Result gd::Device::WaitForFence(vk::Fence fence)
     return vkDevice.waitForFences(fence, vk::True, UINT64_MAX);
 }
 
-void gd::Device::SubmitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence)
-{
-    vkGraphicsQueue.submit(submitInfo, fence);
-}
-
-void gd::Device::SubmitGraphics2(vk::SubmitInfo2 submitInfo, vk::Fence fence)
-{
-    vkGraphicsQueue.submit2(submitInfo, fence);
-}
-
-bool gd::Device::Present(vk::PresentInfoKHR &presentInfo)
-{
-    auto result = vkPresentQueue.presentKHR(presentInfo);
-    switch (result)
-    {
-    case vk::Result::eSuccess:
-        return true;
-    case vk::Result::eErrorOutOfDateKHR:
-    case vk::Result::eSuboptimalKHR:
-        return false;
-    default:
-        Panic("failed to present swapchain image");
-    }
-}
-
 std::vector<vk::raii::CommandBuffer>
 gd::Device::AllocateCommandBuffers(u32 count) const
 {

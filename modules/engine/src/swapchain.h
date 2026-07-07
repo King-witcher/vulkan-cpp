@@ -1,25 +1,39 @@
 #pragma once
-#include <vulkan/vulkan_raii.hpp>
-#include "device.h"
+
 #include <vector>
+
+#include <vulkan/vulkan_raii.hpp>
+
+#include "rust_types.h"
+#include "device.h"
 
 namespace gd
 {
     struct SwapchainImage
     {
     public:
-        vk::Semaphore RenderFinishedSemaphore() const { return *renderFinished; }
+        vk::Semaphore RenderFinishedSemaphore() const
+        {
+            return *renderFinished;
+        }
         vk::Image Image() const { return image; }
         vk::ImageView ImageView() const { return *imageView; }
 
     private:
-        SwapchainImage(u32 index, vk::Image image, vk::raii::ImageView imageView, vk::raii::Semaphore imageAvailableSemaphore)
-            : index(index), image(std::move(image)), imageView(std::move(imageView)), renderFinished(std::move(imageAvailableSemaphore)) {}
+        SwapchainImage(u32 index, vk::Image image,
+                       vk::raii::ImageView imageView,
+                       vk::raii::Semaphore imageAvailableSemaphore)
+            : index(index), image(std::move(image)),
+              imageView(std::move(imageView)),
+              renderFinished(std::move(imageAvailableSemaphore))
+        {
+        }
 
         u32 index;
         vk::Image image;
         vk::raii::ImageView imageView;
-        /** Indicates that the renderer has finished rendering and the image is ready to be presented */
+        /** Indicates that the renderer has finished rendering and the image is
+         * ready to be presented */
         vk::raii::Semaphore renderFinished;
 
         friend class Swapchain;
@@ -28,7 +42,8 @@ namespace gd
     class Swapchain
     {
     public:
-        Swapchain(Device &device, vk::SurfaceKHR surface, vk::SwapchainKHR oldSwapChain = nullptr);
+        Swapchain(Device &device, vk::SurfaceKHR surface,
+                  vk::SwapchainKHR oldSwapChain = nullptr);
 
         SwapchainImage &AcquireNextImage(const vk::Semaphore semaphore);
 
@@ -36,10 +51,11 @@ namespace gd
         vk::Extent2D Extent() const { return extent; }
         vk::SwapchainKHR VkSwapChain() { return *vkSwapChain; }
         vk::SwapchainKHR operator*() const { return *vkSwapChain; }
-        void Present(gd::SwapchainImage &image);
+        void Present(SwapchainImage &image);
 
     private:
         Device &device;
+        vk::Queue presentQueue;
         vk::SurfaceKHR surface;
         vk::Format vkImageFormat;
         vk::Extent2D extent;

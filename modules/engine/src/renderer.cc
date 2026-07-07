@@ -1,6 +1,7 @@
 #include "renderer.h"
 #include "device.h"
 #include "mesh.h"
+#include "panic.h"
 #include "pipeline.h"
 #include "swapchain.h"
 #include "vulkan/vulkan.hpp"
@@ -187,7 +188,10 @@ void gd::Renderer::EndFrame(gd::RenderFrame &renderFrame)
     submitInfo.setWaitSemaphoreInfos(waitSemaphore);
     submitInfo.setSignalSemaphoreInfos(signalSemaphore);
 
-    device.SubmitGraphics2(submitInfo, frameInFlight.fence);
+    auto submitResult = graphicsQueue.submit2(submitInfo, frameInFlight.fence);
+    if (submitResult != vk::Result::eSuccess)
+        Panic("failed to submit to graphics queue");
+
     swapchain.Present(renderFrame.swapchainImage);
 }
 #pragma endregion

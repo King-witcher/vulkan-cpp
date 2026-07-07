@@ -20,15 +20,14 @@ namespace gd
         SurfaceSupport QuerySurfaceSupport(vk::SurfaceKHR surface);
         void ResetFence(vk::Fence fence);
         vk::Result WaitForFence(vk::Fence fence);
-        void SubmitGraphics(vk::SubmitInfo submitInfo, vk::Fence fence);
-        void SubmitGraphics2(vk::SubmitInfo2 submitInfo, vk::Fence fence);
-        bool Present(vk::PresentInfoKHR &presentInfo);
         std::vector<vk::raii::CommandBuffer>
         AllocateCommandBuffers(u32 count) const;
         vk::raii::Semaphore CreateSemaphore() const;
         vk::raii::Fence CreateFence(bool signaled = true) const;
         vk::raii::ShaderModule
         CreateShaderModule(const std::vector<u8> code) const;
+        vk::Queue GraphicsQueue() const { return vkGraphicsQueue; }
+        vk::Queue PresentQueue() const { return vkPresentQueue; }
 
         vk::raii::Device &VkDevice() { return vkDevice; }
         vk::PhysicalDevice PhysicalDevice() { return *vkPhysicalDevice; }
@@ -42,8 +41,8 @@ namespace gd
 
         vk::raii::PhysicalDevice vkPhysicalDevice = nullptr;
         vk::raii::Device vkDevice = nullptr;
-        vk::raii::Queue vkGraphicsQueue = nullptr;
-        vk::raii::Queue vkPresentQueue = nullptr;
+        vk::Queue vkGraphicsQueue = nullptr;
+        vk::Queue vkPresentQueue = nullptr;
         vk::raii::CommandPool vkCommandPool = nullptr;
     };
 } // namespace gd

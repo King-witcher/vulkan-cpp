@@ -48,7 +48,8 @@ namespace gd
     {
     public:
         Renderer(gd::Device &device, gd::Swapchain &swapchain)
-            : device(device), swapchain(swapchain),
+            : device(device), graphicsQueue(device.GraphicsQueue()),
+              swapchain(swapchain),
               trianglePipeline(device, swapchain.ImageFormat(),
                                "shaders/shader.spv")
         {
@@ -62,6 +63,7 @@ namespace gd
         static const u32 MAX_FRAMES_IN_FLIGHT = 2;
 
         gd::Device &device;
+        vk::Queue graphicsQueue;
         gd::Swapchain &swapchain;
         gd::Pipeline trianglePipeline;
 
