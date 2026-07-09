@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
+// TODO: Untie from Vulkan
 namespace gd
 {
     struct Vertex

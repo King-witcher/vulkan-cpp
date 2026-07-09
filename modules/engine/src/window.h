@@ -1,26 +1,38 @@
 #pragma once
 
-#include <vulkan/vulkan_raii.hpp>
+#include <span>
+
 #include "rust_types.h"
 
-#include <SDL3/SDL.h>
-#include <span>
+struct SDL_Window;
+typedef struct VkInstance_T *VkInstance;
+typedef struct VkSurfaceKHR_T *VkSurfaceKHR;
 
 namespace gd
 {
-	class Window
-	{
-	public:
-		Window(const char *title);
+    class Window
+    {
+    public:
+        struct Size
+        {
+            u32 width;
+            u32 height;
+        };
 
-		~Window();
+        Window(const char *title);
 
-		vk::raii::SurfaceKHR VulkanSurface(vk::raii::Instance &instance) const;
-		std::span<const char *const> RequiredVulkanExtensions() const;
-		vk::Extent2D Extent() const;
-		void SetPosition(i32 x, i32 y) { SDL_SetWindowPosition(window, x, y); }
+        Window(const Window &) = delete;
+        Window &operator=(const Window &) = delete;
 
-	private:
-		SDL_Window *window;
-	};
-}
+        ~Window();
+
+        VkSurfaceKHR VulkanSurface(VkInstance instance) const;
+        std::span<const char *const> RequiredVulkanExtensions() const;
+
+        Size GetSize() const;
+        void SetPosition(i32 x, i32 y);
+
+    private:
+        SDL_Window *window;
+    };
+} // namespace gd

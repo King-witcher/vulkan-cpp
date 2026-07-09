@@ -1,7 +1,6 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include <vulkan/vulkan_raii.hpp>
 
 #include "rust_types.h"
 
@@ -24,7 +23,5 @@ namespace gd
                                            const std::vector<Vertex> &);
 
         gd::Buffer buffer;
-        // TODO: Review it. There is an allocation limit.
-        vk::raii::DeviceMemory deviceMemory = nullptr;
     };
 } // namespace gd

@@ -1,12 +1,12 @@
 #include <iostream>
 
-#include "device.h"
-#include "input.h"
 #include "allocator.h"
+#include "device.h"
+#include "engine/engine.h"
+#include "input.h"
 #include "renderer.h"
 #include "swapchain.h"
 #include "window.h"
-#include "engine/engine.h"
 
 namespace gd
 {
@@ -49,7 +49,8 @@ namespace gd
 
         vk::raii::Context vkContext;
         vk::raii::Instance vkInstance = CreateInstance();
-        vk::raii::SurfaceKHR vkSurface = window.VulkanSurface(vkInstance);
+        vk::raii::SurfaceKHR vkSurface{vkInstance,
+                                       window.VulkanSurface(*vkInstance)};
 
         Device device{vkInstance, vkSurface};
         Allocator allocator{vkInstance, device.PhysicalDevice(),

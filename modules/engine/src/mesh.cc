@@ -1,9 +1,10 @@
-#include "mesh.h"
-#include "panic.h"
-#include "vertex.h"
-#include "allocator.h"
-#include "vulkan/vulkan.hpp"
 #include <vector>
+
+#include "panic.h"
+
+#include "allocator.h"
+#include "mesh.h"
+#include "vertex.h"
 
 namespace gd
 {
