@@ -17,8 +17,8 @@ gd::FrameInFlight::FrameInFlight(gd::Device &device)
 }
 #pragma endregion
 
-#pragma region gd::RenderFrame
-void gd::RenderFrame::BeginRendering(vk::Extent2D extent)
+#pragma region gd::RenderPass
+void gd::RenderPass::BeginRendering(vk::Extent2D extent)
 {
     vk::RenderingAttachmentInfo colorAttachmentInfo;
     colorAttachmentInfo.setImageView(swapchainImage.ImageView());
@@ -47,14 +47,14 @@ void gd::RenderFrame::BeginRendering(vk::Extent2D extent)
         0, vk::Rect2D{.offset = vk::Offset2D{0, 0}, .extent = extent});
 }
 
-void gd::RenderFrame::EndRendering()
+void gd::RenderPass::EndRendering()
 {
     frameInFlight.commandBuffer.endRendering();
     TransitionPresentation();
     frameInFlight.commandBuffer.end();
 }
 
-void gd::RenderFrame::TransitionRendering()
+void gd::RenderPass::TransitionRendering()
 {
     vk::ImageMemoryBarrier2 barrier = {
         // What the transition should wait before running.
@@ -89,7 +89,7 @@ void gd::RenderFrame::TransitionRendering()
     frameInFlight.commandBuffer.pipelineBarrier2(dependencyInfo);
 }
 
-void gd::RenderFrame::TransitionPresentation()
+void gd::RenderPass::TransitionPresentation()
 {
     vk::ImageMemoryBarrier2 barrier = {
         // Waits for all Color Attachment Outputs to finish before transitioning
@@ -122,7 +122,7 @@ void gd::RenderFrame::TransitionPresentation()
 #pragma endregion
 
 #pragma region gd::Renderer
-gd::RenderFrame gd::Renderer::BeginFrame()
+gd::RenderPass gd::Renderer::BeginRenderPass()
 {
     auto &frameInFlight = frames[nextFrame];
 
@@ -134,16 +134,16 @@ gd::RenderFrame gd::Renderer::BeginFrame()
     frameInFlight.commandBuffer.reset();
 
     frameInFlight.commandBuffer.begin({});
-    gd::RenderFrame renderFrame{frameInFlight, swapchainImage};
-    renderFrame.TransitionRendering();
-    renderFrame.BeginRendering(swapchain.Extent());
+    gd::RenderPass renderPass{frameInFlight, swapchainImage};
+    renderPass.TransitionRendering();
+    renderPass.BeginRendering(swapchain.Extent());
 
     nextFrame = (nextFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
-    return renderFrame;
+    return renderPass;
 }
 
-void gd::Renderer::DrawScene(gd::RenderFrame &frame,
+void gd::Renderer::DrawScene(gd::RenderPass &frame,
                              std::vector<gd::Mesh> &scene)
 {
     auto &commandBuffer = frame.frameInFlight.commandBuffer;
@@ -158,16 +158,16 @@ void gd::Renderer::DrawScene(gd::RenderFrame &frame,
     }
 }
 
-void gd::Renderer::EndFrame(gd::RenderFrame &renderFrame)
+void gd::Renderer::SubmitFrame(gd::RenderPass &renderPass)
 {
-    auto &frameInFlight = renderFrame.frameInFlight;
-    renderFrame.EndRendering();
+    auto &frameInFlight = renderPass.frameInFlight;
+    renderPass.EndRendering();
 
-    auto renderFinished = renderFrame.swapchainImage.RenderFinishedSemaphore();
+    auto renderFinished = renderPass.swapchainImage.RenderFinishedSemaphore();
 
     // Present to Swapchain
     vk::SemaphoreSubmitInfo waitSemaphore;
-    waitSemaphore.setSemaphore(renderFrame.frameInFlight.imageAvailable);
+    waitSemaphore.setSemaphore(renderPass.frameInFlight.imageAvailable);
     // Trava a escrita na imagem até o acquireNextImage sinalizar. Estágios
     // anteriores (vertex/geometry) podem adiantar enquanto a imagem não chega.
     waitSemaphore.setStageMask(
@@ -180,7 +180,7 @@ void gd::Renderer::EndFrame(gd::RenderFrame &renderFrame)
     signalSemaphore.setStageMask(vk::PipelineStageFlagBits2::eAllCommands);
 
     vk::CommandBufferSubmitInfo commandBufferInfo;
-    commandBufferInfo.setCommandBuffer(renderFrame.frameInFlight.commandBuffer);
+    commandBufferInfo.setCommandBuffer(renderPass.frameInFlight.commandBuffer);
 
     // TODO: Check SubmitInfo2 and PipelineStageFlagBits2
     vk::SubmitInfo2 submitInfo;
@@ -192,6 +192,6 @@ void gd::Renderer::EndFrame(gd::RenderFrame &renderFrame)
     if (submitResult != vk::Result::eSuccess)
         Panic("failed to submit to graphics queue");
 
-    swapchain.Present(renderFrame.swapchainImage);
+    swapchain.Present(renderPass.swapchainImage);
 }
 #pragma endregion

@@ -14,7 +14,7 @@ namespace gd
     class FrameInFlight
     {
         friend class Renderer;
-        friend class RenderFrame;
+        friend class RenderPass;
 
     private:
         FrameInFlight(gd::Device &device);
@@ -24,13 +24,13 @@ namespace gd
         vk::raii::Fence fence = nullptr;
     };
 
-    class RenderFrame
+    class RenderPass
     {
         friend class Renderer;
 
     private:
-        RenderFrame(gd::FrameInFlight &frameInFlight,
-                    gd::SwapchainImage &swapchainImage)
+        RenderPass(gd::FrameInFlight &frameInFlight,
+                   gd::SwapchainImage &swapchainImage)
             : frameInFlight(frameInFlight), swapchainImage(swapchainImage)
         {
         }
@@ -55,9 +55,9 @@ namespace gd
         {
         }
 
-        gd::RenderFrame BeginFrame();
-        void DrawScene(gd::RenderFrame &, std::vector<gd::Mesh> &);
-        void EndFrame(gd::RenderFrame &frame);
+        gd::RenderPass BeginRenderPass();
+        void DrawScene(gd::RenderPass &, std::vector<gd::Mesh> &);
+        void SubmitFrame(gd::RenderPass &frame);
 
     private:
         static const u32 MAX_FRAMES_IN_FLIGHT = 2;

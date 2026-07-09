@@ -89,9 +89,9 @@ namespace gd
 
         void Draw(std::vector<gd::Mesh> &meshes)
         {
-            auto frame = renderer.BeginFrame();
-            renderer.DrawScene(frame, meshes);
-            renderer.EndFrame(frame);
+            auto renderpass = renderer.BeginRenderPass();
+            renderer.DrawScene(renderpass, meshes);
+            renderer.SubmitFrame(renderpass);
         };
     };
 
