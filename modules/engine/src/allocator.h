@@ -1,8 +1,10 @@
 #pragma once
 
-#include <vector>
+#include <span>
+
 #include <vulkan/vulkan_raii.hpp>
 #include "vk_mem_alloc.h"
+
 #include "rust_types.h"
 
 namespace gd
@@ -19,17 +21,22 @@ namespace gd
         }
         Buffer(Buffer &&);
 
-        vk::Result Write(const void *pdata, usize size);
+        vk::Result MapCopy(std::span<u8>);
 
-        template <typename T> vk::Result Write(const std::vector<T> &vector)
+        template <typename T>
+        inline vk::Result MapCopy(const std::vector<T> &vector)
         {
-            return Write(vector.data(), sizeof(T) * vector.size());
+            std::span<u8> span{(u8 *)vector.data(), vector.size() * sizeof(T)};
+            return MapCopy(span);
         }
 
-        template <typename T> vk::Result Write(T &data)
+        template <typename T> inline vk::Result MapCopy(T &data)
         {
-            return Write(&data, sizeof(T));
+            return MapCopy(&data, sizeof(T));
         }
+
+        void *Map();
+        void Unmap();
 
         vk::Buffer VkBuffer() { return vkBuffer; }
 
@@ -43,6 +50,12 @@ namespace gd
         VmaAllocator vmaAllocator;
         VmaAllocation allocation;
         vk::Buffer vkBuffer;
+    };
+
+    enum AllocMode
+    {
+        Staging,
+        DeviceLocal,
     };
 
     class Allocator

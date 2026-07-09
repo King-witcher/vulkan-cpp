@@ -7,6 +7,7 @@
 
 namespace gd
 {
+#pragma region Buffer
     Buffer::Buffer(Buffer &&other)
         : vmaAllocator{other.vmaAllocator}, allocation{other.allocation},
           vkBuffer{other.vkBuffer}
@@ -14,12 +15,19 @@ namespace gd
         other.vmaAllocator = nullptr;
     }
 
-    vk::Result Buffer::Write(const void *pdata, usize size)
+    void *Buffer::Map()
     {
-        auto vkResult =
-            vmaCopyMemoryToAllocation(vmaAllocator, pdata, allocation, 0, size);
-        return vk::Result{vkResult};
+        void *ptr;
+        vmaMapMemory(vmaAllocator, allocation, &ptr);
+        return ptr;
     }
+
+    void Buffer::Unmap()
+    {
+        vmaUnmapMemory(vmaAllocator, allocation);
+    }
+#pragma endregion
+#pragma region Allocator
 
     Allocator::Allocator(vk::Instance instance,
                          vk::PhysicalDevice physicalDevice, vk::Device device)
@@ -34,12 +42,25 @@ namespace gd
             Panic("Failed to create VMA allocator");
     }
 
+    Allocator::~Allocator()
+    {
+        vmaDestroyAllocator(vmaAllocator);
+    }
+
+    vk::Result Buffer::MapCopy(std::span<u8> data)
+    {
+        auto vkResult = vmaCopyMemoryToAllocation(vmaAllocator, data.data(),
+                                                  allocation, 0, data.size());
+        return vk::Result{vkResult};
+    }
+
     vk::ResultValue<Buffer> Allocator::Allocate(vk::BufferCreateInfo bufferInfo)
     {
         VmaAllocationCreateInfo allocInfo{};
-        allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+        allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
         allocInfo.flags =
             VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
         VkBuffer vkBuffer;
         VmaAllocation allocation;
         auto result =
@@ -49,9 +70,5 @@ namespace gd
         auto buffer = Buffer{vmaAllocator, allocation, vk::Buffer{vkBuffer}};
         return vk::ResultValue<Buffer>{result, std::move(buffer)};
     }
-
-    Allocator::~Allocator()
-    {
-        vmaDestroyAllocator(vmaAllocator);
-    }
+#pragma endregion
 } // namespace gd
