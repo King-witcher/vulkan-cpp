@@ -1,7 +1,10 @@
 #pragma once
 
+#include <array>
+
 #include <glm/glm.hpp>
-#include <vulkan/vulkan_raii.hpp>
+
+#include "rhi.h"
 
 namespace gd
 {
@@ -10,32 +13,26 @@ namespace gd
         glm::vec3 position;
         glm::vec3 color;
 
-        static vk::VertexInputBindingDescription BindingDescription()
+        // O array precisa ter tempo de vida >= o span devolvido — por isso é
+        // static/constexpr.
+        static rhi::VertexLayout Layout()
         {
-            vk::VertexInputBindingDescription description;
-            description.setBinding(0);
-            description.setStride(sizeof(Vertex));
-            description.setInputRate(vk::VertexInputRate::eVertex);
-
-            return description;
-        }
-
-        static std::array<vk::VertexInputAttributeDescription, 2>
-        AttributeDescriptions()
-        {
-            vk::VertexInputAttributeDescription position;
-            position.setLocation(0);
-            position.setBinding(0);
-            position.setFormat(vk::Format::eR32G32B32Sfloat);
-            position.setOffset(offsetof(Vertex, position));
-
-            vk::VertexInputAttributeDescription color;
-            color.setLocation(1);
-            color.setBinding(0);
-            color.setFormat(vk::Format::eR32G32B32Sfloat);
-            color.setOffset(offsetof(Vertex, color));
-
-            return {position, color};
+            static constexpr std::array attributes = {
+                rhi::VertexAttribute{
+                    .location = 0,
+                    .format = rhi::VertexFormat::Float32x3,
+                    .offset = offsetof(Vertex, position),
+                },
+                rhi::VertexAttribute{
+                    .location = 1,
+                    .format = rhi::VertexFormat::Float32x3,
+                    .offset = offsetof(Vertex, color),
+                },
+            };
+            return rhi::VertexLayout{
+                .stride = sizeof(Vertex),
+                .attributes = attributes,
+            };
         }
     };
 } // namespace gd

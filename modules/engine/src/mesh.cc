@@ -1,32 +1,48 @@
+#include <cstring>
+#include <utility>
+
 #include "mesh.h"
-#include "panic.h"
-#include "vertex.h"
-#include "allocator.h"
-#include "vulkan/vulkan.hpp"
-#include <vector>
 
 namespace gd
 {
-    Mesh::Mesh(gd::Allocator &allocator,
-               const std::vector<gd::Vertex> &vertices)
-        : vertexCount(vertices.size()),
-          buffer(MakeVertexBuffer(allocator, vertices))
+    Mesh::Mesh(rhi::Driver &driver, const std::vector<Vertex> &vertices)
+        : driver(&driver), vertexCount(static_cast<u32>(vertices.size()))
     {
+        rhi::BufferDesc desc{
+            .size = vertices.size() * sizeof(Vertex),
+            .usage = rhi::BufferUsage::Vertex,
+        };
+        buffer = driver.CreateBuffer(desc);
+
+        auto bytes = std::span<const u8>(
+            reinterpret_cast<const u8 *>(vertices.data()), desc.size);
+        driver.WriteBuffer(buffer, bytes);
     }
 
-    gd::Buffer Mesh::MakeVertexBuffer(gd::Allocator &allocator,
-                                      const std::vector<gd::Vertex> &vertices)
+    Mesh::~Mesh()
     {
-        vk::BufferCreateInfo bufferInfo;
-        bufferInfo.setSize(vertices.size() * sizeof(Vertex));
-        bufferInfo.setUsage(vk::BufferUsageFlagBits::eVertexBuffer);
-        bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
+        if (driver && buffer)
+            driver->DestroyBuffer(buffer);
+    }
 
-        auto allocated = allocator.Allocate(bufferInfo);
-        if (allocated.result != vk::Result::eSuccess)
-            Panic("Failed to allocate buffer");
+    Mesh::Mesh(Mesh &&other) noexcept
+        : driver(other.driver), buffer(other.buffer),
+          vertexCount(other.vertexCount)
+    {
+        other.buffer = {};
+    }
 
-        allocated.value.Write(vertices);
-        return std::move(allocated.value);
+    Mesh &Mesh::operator=(Mesh &&other) noexcept
+    {
+        if (this != &other)
+        {
+            if (driver && buffer)
+                driver->DestroyBuffer(buffer);
+            driver = other.driver;
+            buffer = other.buffer;
+            vertexCount = other.vertexCount;
+            other.buffer = {};
+        }
+        return *this;
     }
 } // namespace gd

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <vector>
 #include <vulkan/vulkan_raii.hpp>
 #include "vk_mem_alloc.h"
+
 #include "rust_types.h"
 
-namespace gd
+namespace gd::rhi::vulkan
 {
     class Buffer
     {
@@ -18,20 +18,12 @@ namespace gd
                 vmaDestroyBuffer(vmaAllocator, vkBuffer, allocation);
         }
         Buffer(Buffer &&);
+        Buffer(const Buffer &) = delete;
+        Buffer &operator=(const Buffer &) = delete;
 
         vk::Result Write(const void *pdata, usize size);
 
-        template <typename T> vk::Result Write(const std::vector<T> &vector)
-        {
-            return Write(vector.data(), sizeof(T) * vector.size());
-        }
-
-        template <typename T> vk::Result Write(T &data)
-        {
-            return Write(&data, sizeof(T));
-        }
-
-        vk::Buffer VkBuffer() { return vkBuffer; }
+        vk::Buffer VkBuffer() const { return vkBuffer; }
 
     private:
         Buffer(VmaAllocator allocator, VmaAllocation allocation,
@@ -49,8 +41,8 @@ namespace gd
     {
     public:
         Allocator(vk::Instance, vk::PhysicalDevice, vk::Device);
-        Allocator(Allocator &) = delete;
-        Allocator &operator=(Allocator &) = delete;
+        Allocator(const Allocator &) = delete;
+        Allocator &operator=(const Allocator &) = delete;
         ~Allocator();
 
         vk::ResultValue<Buffer> Allocate(vk::BufferCreateInfo);
@@ -58,4 +50,4 @@ namespace gd
     private:
         VmaAllocator vmaAllocator;
     };
-} // namespace gd
+} // namespace gd::rhi::vulkan

@@ -1,9 +1,13 @@
 #pragma once
 
+#include <span>
+#include <vector>
+
 #include <vulkan/vulkan_raii.hpp>
+
 #include "rust_types.h"
 
-namespace gd
+namespace gd::rhi::vulkan
 {
     struct SurfaceSupport
     {
@@ -12,6 +16,8 @@ namespace gd
         std::vector<vk::PresentModeKHR> presentModes;
     };
 
+    // Envolve o physical/logical device, as filas e o command pool. Não conhece
+    // swapchain nem alocação de memória (VMA cuida disso).
     class Device
     {
     public:
@@ -24,25 +30,19 @@ namespace gd
         AllocateCommandBuffers(u32 count) const;
         vk::raii::Semaphore CreateSemaphore() const;
         vk::raii::Fence CreateFence(bool signaled = true) const;
-        vk::raii::ShaderModule
-        CreateShaderModule(const std::vector<u8> code) const;
+        vk::raii::ShaderModule CreateShaderModule(std::span<const u8> code) const;
+
         vk::Queue GraphicsQueue() const { return vkGraphicsQueue; }
         vk::Queue PresentQueue() const { return vkPresentQueue; }
-
         vk::raii::Device &VkDevice() { return vkDevice; }
         vk::PhysicalDevice PhysicalDevice() { return *vkPhysicalDevice; }
-        vk::CommandPool VkCommandPool() { return *vkCommandPool; }
-        std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory>
-        Allocate(usize size);
         void WaitIdle() const { vkDevice.waitIdle(); }
 
     private:
-        u32 FindMemoryType(u32 typeFilter, vk::MemoryPropertyFlags properties);
-
         vk::raii::PhysicalDevice vkPhysicalDevice = nullptr;
         vk::raii::Device vkDevice = nullptr;
         vk::Queue vkGraphicsQueue = nullptr;
         vk::Queue vkPresentQueue = nullptr;
         vk::raii::CommandPool vkCommandPool = nullptr;
     };
-} // namespace gd
+} // namespace gd::rhi::vulkan

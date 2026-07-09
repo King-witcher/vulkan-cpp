@@ -5,7 +5,7 @@
 #include "panic.h"
 #include "allocator.h"
 
-namespace gd
+namespace gd::rhi::vulkan
 {
     Buffer::Buffer(Buffer &&other)
         : vmaAllocator{other.vmaAllocator}, allocation{other.allocation},
@@ -54,4 +54,4 @@ namespace gd
     {
         vmaDestroyAllocator(vmaAllocator);
     }
-} // namespace gd
+} // namespace gd::rhi::vulkan

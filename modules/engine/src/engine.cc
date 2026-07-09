@@ -1,10 +1,13 @@
 #include <iostream>
+#include <memory>
+#include <vector>
 
-#include "device.h"
+#include "rhi.h"
+#include "rhi_vk.h"
+
 #include "input.h"
-#include "allocator.h"
 #include "renderer.h"
-#include "swapchain.h"
+#include "vertex.h"
 #include "window.h"
 #include "engine/engine.h"
 
@@ -30,69 +33,28 @@ namespace gd
             };
 
             std::vector<gd::Mesh> meshes;
-            meshes.emplace_back(allocator, vertices1);
-            meshes.emplace_back(allocator, vertices2);
+            meshes.emplace_back(*driver, vertices1);
+            meshes.emplace_back(*driver, vertices2);
 
             for (;;)
             {
-                Draw(meshes);
+                renderer.DrawScene(meshes);
                 input.Update();
                 if (input.ShouldQuit())
                     break;
             }
-            device.VkDevice().waitIdle();
+            driver->WaitIdle();
             std::cout << "Exiting engine loop." << std::endl;
         }
 
     private:
         Window window{"Giuseppe"};
-
-        vk::raii::Context vkContext;
-        vk::raii::Instance vkInstance = CreateInstance();
-        vk::raii::SurfaceKHR vkSurface = window.VulkanSurface(vkInstance);
-
-        Device device{vkInstance, vkSurface};
-        Allocator allocator{vkInstance, device.PhysicalDevice(),
-                            device.VkDevice()};
-        Swapchain swapchain{device, vkSurface};
         Input input{};
-        Renderer renderer{device, swapchain};
-
-        vk::raii::Instance CreateInstance() const
-        {
-            vk::ApplicationInfo appInfo;
-            appInfo.setPApplicationName("VkWizard");
-            appInfo.setApplicationVersion(vk::makeVersion(1, 0, 0));
-            appInfo.setPEngineName("No Engine");
-            appInfo.setEngineVersion(vk::makeVersion(1, 0, 0));
-            appInfo.setApiVersion(vk::ApiVersion14);
-
-#ifdef _DEBUG
-            auto layers =
-                std::vector<const char *>{"VK_LAYER_KHRONOS_validation"};
-            std::cout << "Enabling validation layers..." << std::endl;
-#else
-            auto layers = std::vector<const char *>{};
-#endif
-
-            auto requiredExtensions = window.RequiredVulkanExtensions();
-            // TODO: check for supported extensions
-            vk::InstanceCreateInfo createInfo{};
-            createInfo.setPApplicationInfo(&appInfo);
-            createInfo.setPEnabledLayerNames(layers);
-            createInfo.setPEnabledExtensionNames(requiredExtensions);
-
-            auto instance = std::move(*vkContext.createInstance(createInfo));
-            std::cout << "Vulkan instance created." << std::endl;
-            return instance;
-        };
-
-        void Draw(std::vector<gd::Mesh> &meshes)
-        {
-            auto frame = renderer.BeginFrame();
-            renderer.DrawScene(frame, meshes);
-            renderer.EndFrame(frame);
-        };
+        // Escolha do backend acontece aqui — trocar por outra fábrica (ex.:
+        // sdlgpu::CreateDriver) migraria a engine inteira de API gráfica.
+        std::unique_ptr<rhi::Driver> driver =
+            rhi::vulkan::CreateDriver(window.SdlHandle());
+        Renderer renderer{*driver};
     };
 
     Engine::Engine() : impl(new Impl) {}

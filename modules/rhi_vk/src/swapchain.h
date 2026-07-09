@@ -7,7 +7,7 @@
 #include "rust_types.h"
 #include "device.h"
 
-namespace gd
+namespace gd::rhi::vulkan
 {
     struct SwapchainImage
     {
@@ -67,4 +67,4 @@ namespace gd
         /** Create or recreate the swapchain. */
         void Recreate();
     };
-} // namespace gd
+} // namespace gd::rhi::vulkan

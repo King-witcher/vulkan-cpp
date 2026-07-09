@@ -1,11 +1,10 @@
 #pragma once
 
-#include <glm/glm.hpp>
-#include <vulkan/vulkan_raii.hpp>
+#include <vector>
 
+#include "rhi.h"
 #include "rust_types.h"
 
-#include "allocator.h"
 #include "vertex.h"
 
 namespace gd
@@ -15,16 +14,17 @@ namespace gd
         friend class Renderer;
 
     public:
-        Mesh(gd::Allocator &, const std::vector<Vertex> &);
+        Mesh(rhi::Driver &driver, const std::vector<Vertex> &vertices);
+        ~Mesh();
 
-        u32 vertexCount;
+        Mesh(Mesh &&) noexcept;
+        Mesh &operator=(Mesh &&) noexcept;
+        Mesh(const Mesh &) = delete;
+        Mesh &operator=(const Mesh &) = delete;
 
     private:
-        static gd::Buffer MakeVertexBuffer(gd::Allocator &,
-                                           const std::vector<Vertex> &);
-
-        gd::Buffer buffer;
-        // TODO: Review it. There is an allocation limit.
-        vk::raii::DeviceMemory deviceMemory = nullptr;
+        rhi::Driver *driver;
+        rhi::BufferHandle buffer;
+        u32 vertexCount;
     };
 } // namespace gd

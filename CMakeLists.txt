@@ -94,7 +94,9 @@ FetchContent_MakeAvailable(VMA)
 
 # ---- Módulos (ordem = de baixo para cima na pilha de dependências) ---------
 add_subdirectory(modules/core)     # tipos/utilitários base, sem dependências externas
-add_subdirectory(modules/engine)   # renderer + plataforma (usa core + Vulkan + SDL3)
+add_subdirectory(modules/rhi)      # interface abstrata de GPU (header-only)
+add_subdirectory(modules/rhi_vk)   # backend Vulkan da RHI (device/swapchain/pipeline)
+add_subdirectory(modules/engine)   # renderer + plataforma (usa core + rhi + SDL3)
 add_subdirectory(modules/game)     # executável final (usa engine)
 
 # add_subdirectory é como se fosse uma chamada. as variáveis internas ficam no escopo interno.
