@@ -16,8 +16,10 @@ namespace gd
 
         // Must be bound in a renderpass
         vk::Pipeline VkPipeline() { return *vkPipeline; }
+        vk::PipelineLayout Layout() { return *vkLayout; }
 
     private:
+        vk::raii::PipelineLayout vkLayout = nullptr;
         vk::raii::Pipeline vkPipeline = nullptr;
     };
 } // namespace gd

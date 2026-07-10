@@ -7,7 +7,7 @@
 #include "pipeline.h"
 #include "renderer.h"
 #include "swapchain.h"
-#include "vulkan/vulkan.hpp"
+#include "unwrap.h"
 
 namespace gd
 {
@@ -26,14 +26,27 @@ namespace gd
         info.setCommandBufferCount(1);
         info.setLevel(vk::CommandBufferLevel::ePrimary);
 
-        auto result = device.VkDevice().allocateCommandBuffers(info);
-        if (!result.has_value())
-            Panic("Failed to allocate Command Buffers");
-        return std::move((*result)[0]);
+        auto buffers = Unwrap(device.VkDevice().allocateCommandBuffers(info), "Failed to allocate Command Buffers");
+        return std::move(buffers[0]);
     }
 #pragma endregion
 
 #pragma region gd::RenderPass
+    RenderPass::RenderPass(RenderPass &&other)
+        : frameInFlight(other.frameInFlight), swapchainImage(other.swapchainImage), submitted(other.submitted)
+    {
+        // The moved-from token is no longer responsible for the frame.
+        other.submitted = true;
+    }
+
+    RenderPass::~RenderPass()
+    {
+        // A dropped RenderPass leaves its fence reset but never submitted, so
+        // the next wait on that fence would hang forever. Fail loudly instead.
+        if (!submitted)
+            Panic("RenderPass was dropped without being submitted");
+    }
+
     void gd::RenderPass::BindPipeline(gd::Pipeline &pipeline)
     {
         frameInFlight.commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.VkPipeline());
@@ -155,6 +168,10 @@ namespace gd
 
     RenderPass Renderer::BeginRenderPass()
     {
+        // Frame boundary: no RenderPass or SwapchainImage references exist and
+        // no semaphore is about to be waited on, so recreating is safe here.
+        swapchain->RecreateIfNeeded();
+
         auto &frameInFlight = frames[nextFrame];
 
         auto result = device->WaitAndReset(frameInFlight.fence);
@@ -185,7 +202,7 @@ namespace gd
         }
     }
 
-    void gd::Renderer::SubmitFrame(gd::RenderPass &renderPass)
+    void gd::Renderer::SubmitFrame(gd::RenderPass &&renderPass)
     {
         auto &frameInFlight = renderPass.frameInFlight;
         renderPass.EndRendering();
@@ -217,6 +234,7 @@ namespace gd
         auto submitResult = graphicsQueue.submit2(submitInfo, frameInFlight.fence);
         if (submitResult != vk::Result::eSuccess)
             Panic("failed to submit to graphics queue");
+        renderPass.submitted = true;
 
         swapchain->Present(renderPass.swapchainImage);
     }
@@ -227,11 +245,7 @@ namespace gd
         info.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
         info.setQueueFamilyIndex(device.GraphicsIndex());
 
-        auto result = device.VkDevice().createCommandPool(info);
-        if (!result.has_value())
-            Panic("Failed to create command pool");
-
-        return std::move(result.value);
+        return Unwrap(device.VkDevice().createCommandPool(info), "Failed to create command pool");
     }
 #pragma endregion
 

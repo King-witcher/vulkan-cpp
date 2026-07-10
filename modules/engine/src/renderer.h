@@ -30,6 +30,12 @@ namespace gd
         friend class Renderer;
 
     public:
+        // Linear token: must be consumed by Renderer::SubmitFrame exactly once.
+        RenderPass(RenderPass &&);
+        RenderPass(const RenderPass &) = delete;
+        RenderPass &operator=(const RenderPass &) = delete;
+        ~RenderPass();
+
         void BindPipeline(gd::Pipeline &);
         void BindVertexBuffer(gd::Buffer &);
         void Draw(u32 vertexCount, u32 instanceCount = 1, u32 firstVertex = 0, u32 firstInstance = 0);
@@ -47,6 +53,7 @@ namespace gd
 
         gd::FrameInFlight &frameInFlight;
         gd::SwapchainImage &swapchainImage;
+        bool submitted = false;
     };
 
     class Renderer
@@ -56,7 +63,7 @@ namespace gd
 
         gd::RenderPass BeginRenderPass();
         void DrawScene(gd::RenderPass &, std::vector<gd::Mesh> &);
-        void SubmitFrame(gd::RenderPass &);
+        void SubmitFrame(gd::RenderPass &&);
 
     private:
         static const u32 MAX_FRAMES_IN_FLIGHT = 2;

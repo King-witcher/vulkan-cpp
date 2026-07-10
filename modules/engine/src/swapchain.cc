@@ -3,6 +3,7 @@
 #include "panic.h"
 #include "rust_types.h"
 #include "swapchain.h"
+#include "unwrap.h"
 
 using namespace std;
 
@@ -63,10 +64,12 @@ gd::SwapchainImage &gd::Swapchain::AcquireNextImage(const vk::Semaphore imageAva
         Recreate();
         return AcquireNextImage(imageAvailable);
     case vk::Result::eSuccess:
-    // Suboptimal is a success code: an image WAS acquired and the semaphore
-    // WILL be signaled, so the frame must be rendered and presented normally.
-    // Present() handles recreating the swapchain afterwards.
+        break;
     case vk::Result::eSuboptimalKHR:
+        // Suboptimal is a success code: an image WAS acquired and the
+        // semaphore WILL be signaled, so the frame must be rendered and
+        // presented normally. Recreation waits for the next frame boundary.
+        needsRecreate = true;
         break;
     default:
         Panic("failed to acquire swap chain image.");
@@ -94,12 +97,10 @@ void gd::Swapchain::CreateImages(std::vector<vk::Image> images)
     for (u32 i = 0; i < images.size(); i++)
     {
         viewInfo.setImage(images[i]);
-        auto createResult = device.VkDevice().createImageView(viewInfo);
-        if (!createResult.has_value())
-            Panic("failed to create image view");
+        auto imageView = Unwrap(device.VkDevice().createImageView(viewInfo), "failed to create image view");
         auto semaphore = device.CreateSemaphore();
 
-        swapchainImages.push_back(gd::SwapchainImage(i, images[i], std::move(*createResult), std::move(semaphore)));
+        swapchainImages.push_back(gd::SwapchainImage(i, images[i], std::move(imageView), std::move(semaphore)));
     }
 }
 
@@ -133,16 +134,17 @@ void gd::Swapchain::Recreate()
     createInfo.setClipped(vk::True); // Clips pixels that are obscured by other windows. However,
                                      // this may cause blur effects to bug.
 
-    auto createResult = device.VkDevice().createSwapchainKHR(createInfo);
-    if (!createResult.has_value())
-        Panic("failed to create swapchain.");
-    vkSwapChain = std::move(*createResult);
+    vkSwapChain = Unwrap(device.VkDevice().createSwapchainKHR(createInfo), "failed to create swapchain.");
 
-    auto imagesResult = vkSwapChain.getImages();
-    if (!imagesResult.has_value())
-        Panic("failed to get swapchain images.");
+    CreateImages(Unwrap(vkSwapChain.getImages(), "failed to get swapchain images."));
+}
 
-    CreateImages(*imagesResult);
+void gd::Swapchain::RecreateIfNeeded()
+{
+    if (!needsRecreate)
+        return;
+    needsRecreate = false;
+    Recreate();
 }
 
 void gd::Swapchain::Present(gd::SwapchainImage &frame)
@@ -161,7 +163,11 @@ void gd::Swapchain::Present(gd::SwapchainImage &frame)
         return;
     case vk::Result::eErrorOutOfDateKHR:
     case vk::Result::eSuboptimalKHR:
-        return Recreate();
+        // The image was already consumed by the present call; recreation is
+        // deferred to the next frame boundary, where no per-frame references
+        // into the swapchain exist.
+        needsRecreate = true;
+        return;
     default:
         Panic("failed to present swapchain image");
     }

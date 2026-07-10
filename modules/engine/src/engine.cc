@@ -6,6 +6,7 @@
 #include "input.h"
 #include "renderer.h"
 #include "swapchain.h"
+#include "unwrap.h"
 #include "window.h"
 
 namespace gd
@@ -80,7 +81,7 @@ namespace gd
             createInfo.setPEnabledLayerNames(layers);
             createInfo.setPEnabledExtensionNames(requiredExtensions);
 
-            auto instance = std::move(*vkContext.createInstance(createInfo));
+            auto instance = Unwrap(vkContext.createInstance(createInfo), "failed to create Vulkan instance");
             std::cout << "Vulkan instance created." << std::endl;
             return instance;
         };
@@ -89,7 +90,7 @@ namespace gd
         {
             auto renderpass = renderer.BeginRenderPass();
             renderer.DrawScene(renderpass, meshes);
-            renderer.SubmitFrame(renderpass);
+            renderer.SubmitFrame(std::move(renderpass));
         };
     };
 

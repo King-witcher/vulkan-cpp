@@ -5,6 +5,7 @@
 #include "rust_types.h"
 
 #include "device.h"
+#include "unwrap.h"
 
 using namespace gd;
 
@@ -128,13 +129,7 @@ vk::raii::Device CreateLogicalDevice(vk::raii::PhysicalDevice physicalDevice, u3
     deviceInfo.setQueueCreateInfos(queueCreateInfos);
     deviceInfo.setPEnabledExtensionNames(REQUIRED_EXTENSIONS);
 
-    auto createResult = physicalDevice.createDevice(deviceInfo);
-    if (!createResult.has_value())
-    {
-        Panic("failed to create device");
-    }
-
-    return std::move(*createResult);
+    return Unwrap(physicalDevice.createDevice(deviceInfo), "failed to create device");
 }
 
 gd::Device::Device(vk::raii::Instance &instance, vk::SurfaceKHR surface)
@@ -190,14 +185,15 @@ vk::Result gd::Device::WaitAndReset(vk::Fence fence) const
 
 vk::raii::Semaphore gd::Device::CreateSemaphore() const
 {
-    return std::move(*vkDevice.createSemaphore({}));
+    return Unwrap(vkDevice.createSemaphore({}), "failed to create semaphore");
 }
 
 vk::raii::Fence gd::Device::CreateFence(bool signaled) const
 {
-    return std::move(*vkDevice.createFence({
-        .flags = signaled ? vk::FenceCreateFlagBits::eSignaled : vk::FenceCreateFlags{},
-    }));
+    return Unwrap(vkDevice.createFence({
+                      .flags = signaled ? vk::FenceCreateFlagBits::eSignaled : vk::FenceCreateFlags{},
+                  }),
+                  "failed to create fence");
 }
 
 vk::raii::ShaderModule gd::Device::CreateShaderModule(const std::vector<u8> code) const
@@ -206,7 +202,7 @@ vk::raii::ShaderModule gd::Device::CreateShaderModule(const std::vector<u8> code
         .codeSize = code.size(),
         .pCode = reinterpret_cast<const u32 *>(code.data()),
     };
-    return std::move(*vkDevice.createShaderModule(createInfo));
+    return Unwrap(vkDevice.createShaderModule(createInfo), "failed to create shader module");
 }
 
 std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> gd::Device::Allocate(usize size)

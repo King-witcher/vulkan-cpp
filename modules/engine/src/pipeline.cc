@@ -1,11 +1,10 @@
 #include <fstream>
 
-#include <vulkan/vulkan.hpp>
-
 #include "panic.h"
 #include "rust_types.h"
 
 #include "pipeline.h"
+#include "unwrap.h"
 #include "vertex.h"
 
 using namespace std;
@@ -23,8 +22,7 @@ static vector<u8> ReadFile(const string &filename)
     return buffer;
 }
 
-gd::Pipeline::Pipeline(Device &device, vk::Format imageFormat,
-                       std::string shaderPath)
+gd::Pipeline::Pipeline(Device &device, vk::Format imageFormat, std::string shaderPath)
 {
     auto &vkDevice = device.VkDevice();
     auto shaderCode = ReadFile(shaderPath);
@@ -80,9 +78,8 @@ gd::Pipeline::Pipeline(Device &device, vk::Format imageFormat,
 
     vk::PipelineColorBlendAttachmentState colorBlendAttachment;
     colorBlendAttachment.setBlendEnable(vk::False);
-    colorBlendAttachment.setColorWriteMask(
-        vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-        vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
+    colorBlendAttachment.setColorWriteMask(vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                                           vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
     vk::PipelineColorBlendStateCreateInfo colorBlending;
     colorBlending.setLogicOpEnable(vk::False);
     colorBlending.setLogicOp(vk::LogicOp::eCopy);
@@ -94,23 +91,19 @@ gd::Pipeline::Pipeline(Device &device, vk::Format imageFormat,
 
     // Pipeline layout
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
-    auto pipelineLayoutResult =
-        vkDevice.createPipelineLayout(pipelineLayoutInfo);
-    if (!pipelineLayoutResult.has_value())
-        Panic("Failed to create pipeline layout");
+    vkLayout = Unwrap(vkDevice.createPipelineLayout(pipelineLayoutInfo), "Failed to create pipeline layout");
 
     // Final pipeline create info
-    std::vector<vk::PipelineShaderStageCreateInfo> stages = {
-        {
-            .stage = vk::ShaderStageFlagBits::eVertex,
-            .module = *shaderModule,
-            .pName = "vertMain",
-        },
-        {
-            .stage = vk::ShaderStageFlagBits::eFragment,
-            .module = *shaderModule,
-            .pName = "fragMain",
-        }};
+    std::vector<vk::PipelineShaderStageCreateInfo> stages = {{
+                                                                 .stage = vk::ShaderStageFlagBits::eVertex,
+                                                                 .module = *shaderModule,
+                                                                 .pName = "vertMain",
+                                                             },
+                                                             {
+                                                                 .stage = vk::ShaderStageFlagBits::eFragment,
+                                                                 .module = *shaderModule,
+                                                                 .pName = "fragMain",
+                                                             }};
     vk::GraphicsPipelineCreateInfo pipelineInfo;
     pipelineInfo.setPNext(&pipelineRenderingInfo);
     pipelineInfo.setStages(stages);
@@ -121,9 +114,8 @@ gd::Pipeline::Pipeline(Device &device, vk::Format imageFormat,
     pipelineInfo.setPMultisampleState(&multisampling);
     pipelineInfo.setPColorBlendState(&colorBlending);
     pipelineInfo.setPDynamicState(&dynamicState);
-    pipelineInfo.setLayout(*pipelineLayoutResult);
+    pipelineInfo.setLayout(*vkLayout);
 
     // Sem cache por enquanto
-    vkPipeline =
-        std::move(*vkDevice.createGraphicsPipeline(nullptr, pipelineInfo));
+    vkPipeline = Unwrap(vkDevice.createGraphicsPipeline(nullptr, pipelineInfo), "Failed to create graphics pipeline");
 }

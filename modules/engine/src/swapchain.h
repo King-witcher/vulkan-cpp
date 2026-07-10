@@ -53,6 +53,11 @@ namespace gd
         vk::SwapchainKHR operator*() const { return *vkSwapChain; }
         void Present(SwapchainImage &image);
 
+        /** Recreates the swapchain if a previous acquire/present reported it
+         * as out of date or suboptimal. Must be called at the frame boundary,
+         * before any references into the swapchain images exist. */
+        void RecreateIfNeeded();
+
     private:
         Device &device;
         vk::Queue presentQueue;
@@ -61,6 +66,7 @@ namespace gd
         vk::Extent2D extent;
         vk::raii::SwapchainKHR vkSwapChain = nullptr;
         std::vector<SwapchainImage> swapchainImages;
+        bool needsRecreate = false;
 
         void CreateImages(std::vector<vk::Image> images);
 

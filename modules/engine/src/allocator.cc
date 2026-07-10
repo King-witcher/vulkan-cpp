@@ -1,6 +1,5 @@
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
-#include "vulkan/vulkan.hpp"
 
 #include "panic.h"
 #include "allocator.h"
@@ -9,8 +8,7 @@ namespace gd
 {
 #pragma region Buffer
     Buffer::Buffer(Buffer &&other)
-        : vmaAllocator{other.vmaAllocator}, allocation{other.allocation},
-          vkBuffer{other.vkBuffer}
+        : vmaAllocator{other.vmaAllocator}, allocation{other.allocation}, vkBuffer{other.vkBuffer}
     {
         other.vmaAllocator = nullptr;
     }
@@ -29,8 +27,7 @@ namespace gd
 #pragma endregion
 #pragma region Allocator
 
-    Allocator::Allocator(vk::Instance instance,
-                         vk::PhysicalDevice physicalDevice, vk::Device device)
+    Allocator::Allocator(vk::Instance instance, vk::PhysicalDevice physicalDevice, vk::Device device)
     {
         VmaAllocatorCreateInfo info{};
         info.instance = instance;
@@ -49,8 +46,7 @@ namespace gd
 
     vk::Result Buffer::MapCopy(std::span<const u8> data)
     {
-        auto vkResult = vmaCopyMemoryToAllocation(vmaAllocator, data.data(),
-                                                  allocation, 0, data.size());
+        auto vkResult = vmaCopyMemoryToAllocation(vmaAllocator, data.data(), allocation, 0, data.size());
         return vk::Result{vkResult};
     }
 
@@ -58,14 +54,12 @@ namespace gd
     {
         VmaAllocationCreateInfo allocInfo{};
         allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-        allocInfo.flags =
-            VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+        allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
         VkBuffer vkBuffer;
         VmaAllocation allocation;
         auto result =
-            vk::Result{vmaCreateBuffer(vmaAllocator, &*bufferInfo, &allocInfo,
-                                       &vkBuffer, &allocation, nullptr)};
+            vk::Result{vmaCreateBuffer(vmaAllocator, &*bufferInfo, &allocInfo, &vkBuffer, &allocation, nullptr)};
 
         auto buffer = Buffer{vmaAllocator, allocation, vk::Buffer{vkBuffer}};
         return vk::ResultValue<Buffer>{result, std::move(buffer)};
