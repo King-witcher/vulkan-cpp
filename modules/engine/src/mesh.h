@@ -11,10 +11,10 @@ namespace gd
 {
     class Mesh
     {
-        friend class Renderer;
-
     public:
         Mesh(gd::Allocator &, const std::vector<Vertex> &);
+
+        gd::Buffer &VertexBuffer() { return buffer; }
 
         u32 vertexCount;
 

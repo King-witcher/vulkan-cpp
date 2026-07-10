@@ -34,6 +34,21 @@ namespace gd
 #pragma endregion
 
 #pragma region gd::RenderPass
+    void gd::RenderPass::BindPipeline(gd::Pipeline &pipeline)
+    {
+        frameInFlight.commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.VkPipeline());
+    }
+
+    void gd::RenderPass::BindVertexBuffer(gd::Buffer &buffer)
+    {
+        frameInFlight.commandBuffer.bindVertexBuffers(0, {buffer.VkBuffer()}, {0});
+    }
+
+    void gd::RenderPass::Draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance)
+    {
+        frameInFlight.commandBuffer.draw(vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
     void gd::RenderPass::BeginRendering(vk::Extent2D extent)
     {
         vk::RenderingAttachmentInfo colorAttachmentInfo;
@@ -161,14 +176,12 @@ namespace gd
 
     void gd::Renderer::DrawScene(gd::RenderPass &frame, std::vector<gd::Mesh> &scene)
     {
-        auto &commandBuffer = frame.frameInFlight.commandBuffer;
-
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, trianglePipeline.VkPipeline());
+        frame.BindPipeline(trianglePipeline);
 
         for (auto &mesh : scene)
         {
-            commandBuffer.bindVertexBuffers(0, {mesh.buffer.VkBuffer()}, {0});
-            commandBuffer.draw(mesh.vertexCount, 1, 0, 0);
+            frame.BindVertexBuffer(mesh.VertexBuffer());
+            frame.Draw(mesh.vertexCount);
         }
     }
 
