@@ -85,7 +85,6 @@ namespace gd
     bool Input::WasMouseBtnPressed(int button)
     {
         return mouseButtonsPressed[button];
-        return false;
     }
 
     void Input::Clear()

@@ -21,18 +21,22 @@ namespace gd
         }
         Buffer(Buffer &&);
 
-        vk::Result MapCopy(std::span<u8>);
+        vk::Result MapCopy(std::span<const u8>);
 
         template <typename T>
         inline vk::Result MapCopy(const std::vector<T> &vector)
         {
-            std::span<u8> span{(u8 *)vector.data(), vector.size() * sizeof(T)};
+            std::span<const u8> span{
+                reinterpret_cast<const u8 *>(vector.data()),
+                vector.size() * sizeof(T)};
             return MapCopy(span);
         }
 
-        template <typename T> inline vk::Result MapCopy(T &data)
+        template <typename T> inline vk::Result MapCopy(const T &data)
         {
-            return MapCopy(&data, sizeof(T));
+            std::span<const u8> span{reinterpret_cast<const u8 *>(&data),
+                                     sizeof(T)};
+            return MapCopy(span);
         }
 
         void *Map();

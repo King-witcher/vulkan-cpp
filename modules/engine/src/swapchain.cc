@@ -58,10 +58,15 @@ gd::SwapchainImage &gd::Swapchain::AcquireNextImage(const vk::Semaphore imageAva
     switch (aquireResult)
     {
     case vk::Result::eErrorOutOfDateKHR:
-    case vk::Result::eSuboptimalKHR:
+        // No image was acquired and the semaphore was not signaled, so it is
+        // safe to retry with the same semaphore after recreating.
         Recreate();
-        return AcquireNextImage(imageAvailable); // Review it
+        return AcquireNextImage(imageAvailable);
     case vk::Result::eSuccess:
+    // Suboptimal is a success code: an image WAS acquired and the semaphore
+    // WILL be signaled, so the frame must be rendered and presented normally.
+    // Present() handles recreating the swapchain afterwards.
+    case vk::Result::eSuboptimalKHR:
         break;
     default:
         Panic("failed to acquire swap chain image.");

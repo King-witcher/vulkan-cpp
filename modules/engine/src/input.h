@@ -34,11 +34,11 @@ namespace gd
         static const int SDL_KEY_COUNT = 512;
         static const int MOUSE_BUTTON_COUNT = 8;
 
-        bool keysDown[SDL_KEY_COUNT];
-        bool keysPressed[SDL_KEY_COUNT];
+        bool keysDown[SDL_KEY_COUNT] = {};
+        bool keysPressed[SDL_KEY_COUNT] = {};
 
-        bool mouseButtonsDown[MOUSE_BUTTON_COUNT];
-        bool mouseButtonsPressed[MOUSE_BUTTON_COUNT];
+        bool mouseButtonsDown[MOUSE_BUTTON_COUNT] = {};
+        bool mouseButtonsPressed[MOUSE_BUTTON_COUNT] = {};
 
         bool minimized = false;
         bool shouldQuit = false;

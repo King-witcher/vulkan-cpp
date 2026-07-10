@@ -47,7 +47,7 @@ namespace gd
         vmaDestroyAllocator(vmaAllocator);
     }
 
-    vk::Result Buffer::MapCopy(std::span<u8> data)
+    vk::Result Buffer::MapCopy(std::span<const u8> data)
     {
         auto vkResult = vmaCopyMemoryToAllocation(vmaAllocator, data.data(),
                                                   allocation, 0, data.size());

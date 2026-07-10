@@ -102,12 +102,13 @@ u32 FindGraphicsQueueFamily(vk::raii::PhysicalDevice &device, vk::SurfaceKHR sur
           "given surface");
 }
 
-vk::raii::Device CreateLogicalDevice(vk::raii::PhysicalDevice physicalDevice)
+vk::raii::Device CreateLogicalDevice(vk::raii::PhysicalDevice physicalDevice, u32 queueFamilyIndex)
 {
     using namespace vk;
 
     std::array queuePriorities = {0.5f};
     DeviceQueueCreateInfo queueCreateInfo;
+    queueCreateInfo.setQueueFamilyIndex(queueFamilyIndex);
     queueCreateInfo.setQueuePriorities(queuePriorities);
     std::array queueCreateInfos = {queueCreateInfo};
 
@@ -143,7 +144,7 @@ gd::Device::Device(vk::raii::Instance &instance, vk::SurfaceKHR surface)
     InspectDevice(vkPhysicalDevice);
 #endif
     presentIndex = graphicsIndex = FindGraphicsQueueFamily(vkPhysicalDevice, surface);
-    vkDevice = CreateLogicalDevice(vkPhysicalDevice);
+    vkDevice = CreateLogicalDevice(vkPhysicalDevice, graphicsIndex);
 }
 
 /** Gets information about the surface support for the physical device */

@@ -35,7 +35,7 @@ namespace gd
         {
         }
 
-        void BeginRendering(vk::Extent2D extent);
+        void BeginRendering(vk::Extent2D);
         void EndRendering();
         void TransitionRendering();
         void TransitionPresentation();
@@ -51,7 +51,7 @@ namespace gd
 
         gd::RenderPass BeginRenderPass();
         void DrawScene(gd::RenderPass &, std::vector<gd::Mesh> &);
-        void SubmitFrame(gd::RenderPass &frame);
+        void SubmitFrame(gd::RenderPass &);
 
     private:
         static const u32 MAX_FRAMES_IN_FLIGHT = 2;
