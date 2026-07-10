@@ -23,19 +23,15 @@ namespace gd
 
         vk::Result MapCopy(std::span<const u8>);
 
-        template <typename T>
-        inline vk::Result MapCopy(const std::vector<T> &vector)
+        template <typename T> inline vk::Result MapCopy(const std::vector<T> &vector)
         {
-            std::span<const u8> span{
-                reinterpret_cast<const u8 *>(vector.data()),
-                vector.size() * sizeof(T)};
+            std::span<const u8> span{reinterpret_cast<const u8 *>(vector.data()), vector.size() * sizeof(T)};
             return MapCopy(span);
         }
 
         template <typename T> inline vk::Result MapCopy(const T &data)
         {
-            std::span<const u8> span{reinterpret_cast<const u8 *>(&data),
-                                     sizeof(T)};
+            std::span<const u8> span{reinterpret_cast<const u8 *>(&data), sizeof(T)};
             return MapCopy(span);
         }
 
@@ -45,8 +41,7 @@ namespace gd
         vk::Buffer VkBuffer() { return vkBuffer; }
 
     private:
-        Buffer(VmaAllocator allocator, VmaAllocation allocation,
-               vk::Buffer buffer)
+        Buffer(VmaAllocator allocator, VmaAllocation allocation, vk::Buffer buffer)
             : vmaAllocator{allocator}, allocation{allocation}, vkBuffer{buffer}
         {
         }
@@ -56,10 +51,10 @@ namespace gd
         vk::Buffer vkBuffer;
     };
 
-    enum AllocMode
+    enum class AllocMode
     {
-        Staging,
-        DeviceLocal,
+        HostVisible, // mappable by the CPU (staging, uniforms)
+        DeviceLocal, // pure VRAM, no CPU access
     };
 
     class Allocator
@@ -70,7 +65,7 @@ namespace gd
         Allocator &operator=(Allocator &) = delete;
         ~Allocator();
 
-        vk::ResultValue<Buffer> Allocate(vk::BufferCreateInfo);
+        vk::ResultValue<Buffer> Allocate(vk::BufferCreateInfo, AllocMode);
 
     private:
         VmaAllocator vmaAllocator;

@@ -50,11 +50,14 @@ namespace gd
         return vk::Result{vkResult};
     }
 
-    vk::ResultValue<Buffer> Allocator::Allocate(vk::BufferCreateInfo bufferInfo)
+    vk::ResultValue<Buffer> Allocator::Allocate(vk::BufferCreateInfo bufferInfo, AllocMode mode)
     {
         VmaAllocationCreateInfo allocInfo{};
         allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-        allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+        // HostVisible: memory mappable for the CPU to write (staging/uniforms).
+        // DeviceLocal: no host-access flag, so VMA picks pure VRAM.
+        if (mode == AllocMode::HostVisible)
+            allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
         VkBuffer vkBuffer;
         VmaAllocation allocation;

@@ -6,6 +6,7 @@
 #include "input.h"
 #include "renderer.h"
 #include "swapchain.h"
+#include "transfer.h"
 #include "unwrap.h"
 #include "window.h"
 
@@ -31,8 +32,8 @@ namespace gd
             };
 
             std::vector<gd::Mesh> meshes;
-            meshes.emplace_back(allocator, vertices1);
-            meshes.emplace_back(allocator, vertices2);
+            meshes.emplace_back(transfer, vertices1);
+            meshes.emplace_back(transfer, vertices2);
 
             for (;;)
             {
@@ -54,6 +55,7 @@ namespace gd
 
         Device device{vkInstance, vkSurface};
         Allocator allocator{vkInstance, device.PhysicalDevice(), device.VkDevice()};
+        TransferContext transfer{device, allocator};
         Swapchain swapchain{device, vkSurface};
         Input input{};
         Renderer renderer{device, swapchain};
