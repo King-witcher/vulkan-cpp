@@ -6,7 +6,6 @@
 #include "mesh.h"
 #include "swapchain.h"
 #include "pipeline.h"
-#include "vulkan/vulkan.hpp"
 
 namespace gd
 {
@@ -17,11 +16,13 @@ namespace gd
         friend class RenderPass;
 
     private:
-        FrameInFlight(gd::Device &device);
+        FrameInFlight(gd::Device &, vk::raii::CommandPool &);
 
-        vk::raii::CommandBuffer commandBuffer = nullptr;
-        vk::raii::Semaphore imageAvailable = nullptr;
-        vk::raii::Fence fence = nullptr;
+        vk::raii::CommandBuffer commandBuffer;
+        vk::raii::Semaphore imageAvailable;
+        vk::raii::Fence fence;
+
+        static vk::raii::CommandBuffer MakeCommandBuffer(Device &, vk::raii::CommandPool &);
     };
 
     class RenderPass
@@ -29,8 +30,7 @@ namespace gd
         friend class Renderer;
 
     private:
-        RenderPass(gd::FrameInFlight &frameInFlight,
-                   gd::SwapchainImage &swapchainImage)
+        RenderPass(gd::FrameInFlight &frameInFlight, gd::SwapchainImage &swapchainImage)
             : frameInFlight(frameInFlight), swapchainImage(swapchainImage)
         {
         }
@@ -47,13 +47,7 @@ namespace gd
     class Renderer
     {
     public:
-        Renderer(gd::Device &device, gd::Swapchain &swapchain)
-            : device(device), graphicsQueue(device.GraphicsQueue()),
-              swapchain(swapchain),
-              trianglePipeline(device, swapchain.ImageFormat(),
-                               "shaders/shader.spv")
-        {
-        }
+        Renderer(gd::Device &, gd::Swapchain &);
 
         gd::RenderPass BeginRenderPass();
         void DrawScene(gd::RenderPass &, std::vector<gd::Mesh> &);
@@ -62,13 +56,15 @@ namespace gd
     private:
         static const u32 MAX_FRAMES_IN_FLIGHT = 2;
 
-        gd::Device &device;
+        gd::Device *device;
+        vk::raii::CommandPool commandPool;
         vk::Queue graphicsQueue;
-        gd::Swapchain &swapchain;
+        gd::Swapchain *swapchain;
         gd::Pipeline trianglePipeline;
 
-        std::array<gd::FrameInFlight, MAX_FRAMES_IN_FLIGHT> frames = {
-            gd::FrameInFlight(device), gd::FrameInFlight(device)};
+        std::array<gd::FrameInFlight, MAX_FRAMES_IN_FLIGHT> frames;
         u32 nextFrame = 0;
+
+        static vk::raii::CommandPool MakeCommandPool(gd::Device &);
     };
 } // namespace gd

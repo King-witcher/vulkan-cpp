@@ -8,15 +8,12 @@
 
 namespace gd
 {
-    Mesh::Mesh(gd::Allocator &allocator,
-               const std::vector<gd::Vertex> &vertices)
-        : vertexCount(vertices.size()),
-          buffer(MakeVertexBuffer(allocator, vertices))
+    Mesh::Mesh(gd::Allocator &allocator, const std::vector<gd::Vertex> &vertices)
+        : vertexCount(vertices.size()), buffer(MakeVertexBuffer(allocator, vertices))
     {
     }
 
-    gd::Buffer Mesh::MakeVertexBuffer(gd::Allocator &allocator,
-                                      const std::vector<gd::Vertex> &vertices)
+    gd::Buffer Mesh::MakeVertexBuffer(gd::Allocator &allocator, const std::vector<gd::Vertex> &vertices)
     {
         vk::BufferCreateInfo bufferInfo;
         bufferInfo.setSize(vertices.size() * sizeof(Vertex));
@@ -27,7 +24,7 @@ namespace gd
         if (allocated.result != vk::Result::eSuccess)
             Panic("Failed to allocate buffer");
 
-        allocated.value.Write(vertices);
+        allocated.value.MapCopy(vertices);
         return std::move(allocated.value);
     }
 } // namespace gd

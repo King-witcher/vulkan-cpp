@@ -6,13 +6,11 @@
 
 using namespace std;
 
-vk::SurfaceFormatKHR
-ChooseSwapSurfaceFormat(const vector<vk::SurfaceFormatKHR> &formats)
+vk::SurfaceFormatKHR ChooseSwapSurfaceFormat(const vector<vk::SurfaceFormatKHR> &formats)
 {
     for (const auto &format : formats)
     {
-        if (format.format == vk::Format::eB8G8R8A8Srgb &&
-            format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
+        if (format.format == vk::Format::eB8G8R8A8Srgb && format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
         {
             return format;
         }
@@ -20,8 +18,7 @@ ChooseSwapSurfaceFormat(const vector<vk::SurfaceFormatKHR> &formats)
     return formats[0];
 }
 
-vk::PresentModeKHR
-ChooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &presentModes)
+vk::PresentModeKHR ChooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &presentModes)
 {
     // for (const auto& mode : presentModes) {
     //	if (mode == vk::PresentModeKHR::eMailbox) {
@@ -36,8 +33,7 @@ vk::Extent2D ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities)
     // If width and height are 0xFFFFFFFF, the surface size should be determined
     // by the extent of the swapchain. We are not supporting dynamic surface by
     // now, so let's just discard this scenario.
-    if ((capabilities.currentExtent.width |
-         capabilities.currentExtent.height) == ~0)
+    if ((capabilities.currentExtent.width | capabilities.currentExtent.height) == ~0)
         Panic("dynamic surface extent is not supported by this engine.");
 
     return capabilities.currentExtent;
@@ -47,22 +43,18 @@ u32 ChooseSwapImageCount(const vk::SurfaceCapabilitiesKHR &capabilities)
 {
     if (!capabilities.maxImageCount)
         return std::max(capabilities.minImageCount, 3u);
-    return std::clamp(3u, capabilities.minImageCount,
-                      capabilities.maxImageCount);
+    return std::clamp(3u, capabilities.minImageCount, capabilities.maxImageCount);
 }
 
-gd::Swapchain::Swapchain(Device &device, vk::SurfaceKHR surface,
-                         vk::SwapchainKHR oldSwapChain)
-    : device(device), presentQueue(device.PresentQueue()), surface(surface)
+gd::Swapchain::Swapchain(Device &device, vk::SurfaceKHR surface, vk::SwapchainKHR oldSwapChain)
+    : device(device), presentQueue(device.VkDevice().getQueue(device.PresentIndex(), 0)), surface(surface)
 {
     Recreate();
 }
 
-gd::SwapchainImage &
-gd::Swapchain::AcquireNextImage(const vk::Semaphore imageAvailable)
+gd::SwapchainImage &gd::Swapchain::AcquireNextImage(const vk::Semaphore imageAvailable)
 {
-    auto [aquireResult, index] =
-        vkSwapChain.acquireNextImage(UINT64_MAX, imageAvailable, nullptr);
+    auto [aquireResult, index] = vkSwapChain.acquireNextImage(UINT64_MAX, imageAvailable, nullptr);
     switch (aquireResult)
     {
     case vk::Result::eErrorOutOfDateKHR:
@@ -102,8 +94,7 @@ void gd::Swapchain::CreateImages(std::vector<vk::Image> images)
             Panic("failed to create image view");
         auto semaphore = device.CreateSemaphore();
 
-        swapchainImages.push_back(gd::SwapchainImage(
-            i, images[i], std::move(*createResult), std::move(semaphore)));
+        swapchainImages.push_back(gd::SwapchainImage(i, images[i], std::move(*createResult), std::move(semaphore)));
     }
 }
 
@@ -128,16 +119,14 @@ void gd::Swapchain::Recreate()
     createInfo.setImageFormat(vkImageFormat);
     createInfo.setImageColorSpace(format.colorSpace);
     createInfo.setImageExtent(extent);
-    createInfo.setImageArrayLayers(
-        1); // 1 because we are not doing stereoscopic 3D
+    createInfo.setImageArrayLayers(1); // 1 because we are not doing stereoscopic 3D
     createInfo.setImageUsage(vk::ImageUsageFlagBits::eColorAttachment);
     createInfo.setImageSharingMode(vk::SharingMode::eExclusive);
     createInfo.setPreTransform(swapChainSupport.capabilities.currentTransform);
     createInfo.setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque);
     createInfo.setPresentMode(presentMode);
-    createInfo.setClipped(
-        vk::True); // Clips pixels that are obscured by other windows. However,
-                   // this may cause blur effects to bug.
+    createInfo.setClipped(vk::True); // Clips pixels that are obscured by other windows. However,
+                                     // this may cause blur effects to bug.
 
     auto createResult = device.VkDevice().createSwapchainKHR(createInfo);
     if (!createResult.has_value())

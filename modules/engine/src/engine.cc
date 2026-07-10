@@ -49,12 +49,10 @@ namespace gd
 
         vk::raii::Context vkContext;
         vk::raii::Instance vkInstance = CreateInstance();
-        vk::raii::SurfaceKHR vkSurface{vkInstance,
-                                       window.VulkanSurface(*vkInstance)};
+        vk::raii::SurfaceKHR vkSurface{vkInstance, window.VulkanSurface(*vkInstance)};
 
         Device device{vkInstance, vkSurface};
-        Allocator allocator{vkInstance, device.PhysicalDevice(),
-                            device.VkDevice()};
+        Allocator allocator{vkInstance, device.PhysicalDevice(), device.VkDevice()};
         Swapchain swapchain{device, vkSurface};
         Input input{};
         Renderer renderer{device, swapchain};
@@ -62,15 +60,14 @@ namespace gd
         vk::raii::Instance CreateInstance() const
         {
             vk::ApplicationInfo appInfo;
-            appInfo.setPApplicationName("VkWizard");
+            appInfo.setPApplicationName("GLEED Test");
             appInfo.setApplicationVersion(vk::makeVersion(1, 0, 0));
-            appInfo.setPEngineName("No Engine");
+            appInfo.setPEngineName("GLEED 1");
             appInfo.setEngineVersion(vk::makeVersion(1, 0, 0));
             appInfo.setApiVersion(vk::ApiVersion14);
 
 #ifdef _DEBUG
-            auto layers =
-                std::vector<const char *>{"VK_LAYER_KHRONOS_validation"};
+            auto layers = std::vector<const char *>{"VK_LAYER_KHRONOS_validation"};
             std::cout << "Enabling validation layers..." << std::endl;
 #else
             auto layers = std::vector<const char *>{};

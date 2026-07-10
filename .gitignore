@@ -6,3 +6,5 @@ CMakeFiles
 .deps-cache
 ignore.*
 *.ignore
+.vscode/settings.json
+.VSCodeCounter

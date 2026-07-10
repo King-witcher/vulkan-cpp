@@ -1,10 +1,10 @@
-#include "device.h"
-#include "rust_types.h"
-#include "panic.h"
-#include "vulkan/vulkan.hpp"
-
-#include <vector>
 #include <array>
+#include <vector>
+
+#include "panic.h"
+#include "rust_types.h"
+
+#include "device.h"
 
 using namespace gd;
 
@@ -23,30 +23,24 @@ void InspectDevice(vk::raii::PhysicalDevice &device)
     auto properties = device.getProperties2().properties;
     auto memProperties = device.getMemoryProperties2().memoryProperties;
 
-    cout << "Found device: " << properties.deviceName << " - "
-         << properties.deviceID << endl;
-    cout << "Max memory allocation count: "
-         << properties.limits.maxMemoryAllocationCount << endl;
+    cout << "Found device: " << properties.deviceName << " - " << properties.deviceID << endl;
+    cout << "Max memory allocation count: " << properties.limits.maxMemoryAllocationCount << endl;
     cout << "Memory heaps: " << memProperties.memoryHeapCount << endl;
     cout << "Memory types: " << memProperties.memoryTypeCount << endl;
 
-    for (u32 heapIndex = 0; heapIndex < memProperties.memoryHeapCount;
-         heapIndex++)
+    for (u32 heapIndex = 0; heapIndex < memProperties.memoryHeapCount; heapIndex++)
     {
         auto &heap = memProperties.memoryHeaps[heapIndex];
-        cout << "  Heap " << heapIndex << ": "
-             << (heap.size / (1024.0 * 1024.0 * 1024.0))
+        cout << "  Heap " << heapIndex << ": " << (heap.size / (1024.0 * 1024.0 * 1024.0))
              << " GB, flags: " << vk::to_string(heap.flags) << endl;
 
-        for (u32 typeIndex = 0; typeIndex < memProperties.memoryTypeCount;
-             typeIndex++)
+        for (u32 typeIndex = 0; typeIndex < memProperties.memoryTypeCount; typeIndex++)
         {
             auto &type = memProperties.memoryTypes[typeIndex];
             if (type.heapIndex != heapIndex)
                 continue;
 
-            cout << "    Memory type " << typeIndex << ": "
-                 << vk::to_string(type.propertyFlags) << endl;
+            cout << "    Memory type " << typeIndex << ": " << vk::to_string(type.propertyFlags) << endl;
         }
     }
 }
@@ -88,8 +82,7 @@ vk::raii::PhysicalDevice PickPhysicalDevice(vk::raii::Instance &instance)
     Panic("failed to find a suitable GPU!");
 }
 
-u32 FindGraphicsQueueFamily(vk::raii::PhysicalDevice &device,
-                            vk::SurfaceKHR surface)
+u32 FindGraphicsQueueFamily(vk::raii::PhysicalDevice &device, vk::SurfaceKHR surface)
 {
     auto familyProperties = device.getQueueFamilyProperties();
 
@@ -98,8 +91,7 @@ u32 FindGraphicsQueueFamily(vk::raii::PhysicalDevice &device,
         if (!(familyProperties[i].queueFlags & vk::QueueFlagBits::eGraphics))
             continue;
 
-        auto [result, presentSupported] =
-            device.getSurfaceSupportKHR(i, surface);
+        auto [result, presentSupported] = device.getSurfaceSupportKHR(i, surface);
         if (result != vk::Result::eSuccess)
             Panic("failed to query surface support for queue family");
 
@@ -110,8 +102,7 @@ u32 FindGraphicsQueueFamily(vk::raii::PhysicalDevice &device,
           "given surface");
 }
 
-vk::raii::Device CreateLogicalDevice(vk::raii::PhysicalDevice physicalDevice,
-                                     u32 graphicsIndex)
+vk::raii::Device CreateLogicalDevice(vk::raii::PhysicalDevice physicalDevice)
 {
     using namespace vk;
 
@@ -127,9 +118,8 @@ vk::raii::Device CreateLogicalDevice(vk::raii::PhysicalDevice physicalDevice,
             {
                 .synchronization2 = true,
                 .dynamicRendering = true,
-            }, // Enable dynamic rendering from Vulkan 1.3
-            {.extendedDynamicState =
-                 true} // Enable extended dynamic state from the extension
+            },                             // Enable dynamic rendering from Vulkan 1.3
+            {.extendedDynamicState = true} // Enable extended dynamic state from the extension
         };
 
     DeviceCreateInfo deviceInfo{};
@@ -146,32 +136,14 @@ vk::raii::Device CreateLogicalDevice(vk::raii::PhysicalDevice physicalDevice,
     return std::move(*createResult);
 }
 
-vk::raii::CommandPool CreateCommandPool(vk::raii::Device &vkDevice,
-                                        u32 graphicsIndex)
-{
-    using namespace vk;
-    CommandPoolCreateInfo createInfo;
-    createInfo.setFlags(CommandPoolCreateFlagBits::eResetCommandBuffer);
-    createInfo.setQueueFamilyIndex(graphicsIndex);
-
-    auto createResult = vkDevice.createCommandPool(createInfo);
-    if (createResult.has_value())
-        return std::move(*createResult);
-    Panic("failed to create command pool");
-}
-
 gd::Device::Device(vk::raii::Instance &instance, vk::SurfaceKHR surface)
 {
     vkPhysicalDevice = PickPhysicalDevice(instance);
 #if _DEBUG
     InspectDevice(vkPhysicalDevice);
 #endif
-    auto graphicsIndex = FindGraphicsQueueFamily(vkPhysicalDevice, surface);
-
-    vkDevice = CreateLogicalDevice(vkPhysicalDevice, graphicsIndex);
-    vkCommandPool = CreateCommandPool(vkDevice, graphicsIndex);
-    vkGraphicsQueue = vkDevice.getQueue(graphicsIndex, 0);
-    vkPresentQueue = vkGraphicsQueue;
+    presentIndex = graphicsIndex = FindGraphicsQueueFamily(vkPhysicalDevice, surface);
+    vkDevice = CreateLogicalDevice(vkPhysicalDevice);
 }
 
 /** Gets information about the surface support for the physical device */
@@ -195,25 +167,24 @@ SurfaceSupport gd::Device::QuerySurfaceSupport(vk::SurfaceKHR surface)
     };
 }
 
-void gd::Device::ResetFence(vk::Fence fence)
+void gd::Device::ResetFence(vk::Fence fence) const
 {
     vkDevice.resetFences(fence);
 }
 
-vk::Result gd::Device::WaitForFence(vk::Fence fence)
+[[nodiscard]]
+vk::Result gd::Device::WaitForFence(vk::Fence fence) const
 {
     return vkDevice.waitForFences(fence, vk::True, UINT64_MAX);
 }
 
-std::vector<vk::raii::CommandBuffer>
-gd::Device::AllocateCommandBuffers(u32 count) const
+[[nodiscard]]
+vk::Result gd::Device::WaitAndReset(vk::Fence fence) const
 {
-    vk::CommandBufferAllocateInfo allocateInfo{
-        .commandPool = vkCommandPool,
-        .level = vk::CommandBufferLevel::ePrimary,
-        .commandBufferCount = count,
-    };
-    return std::move(*vkDevice.allocateCommandBuffers(allocateInfo));
+    auto result = WaitForFence(fence);
+    if (result == vk::Result::eSuccess)
+        ResetFence(fence);
+    return result;
 }
 
 vk::raii::Semaphore gd::Device::CreateSemaphore() const
@@ -224,13 +195,11 @@ vk::raii::Semaphore gd::Device::CreateSemaphore() const
 vk::raii::Fence gd::Device::CreateFence(bool signaled) const
 {
     return std::move(*vkDevice.createFence({
-        .flags = signaled ? vk::FenceCreateFlagBits::eSignaled
-                          : vk::FenceCreateFlags{},
+        .flags = signaled ? vk::FenceCreateFlagBits::eSignaled : vk::FenceCreateFlags{},
     }));
 }
 
-vk::raii::ShaderModule
-gd::Device::CreateShaderModule(const std::vector<u8> code) const
+vk::raii::ShaderModule gd::Device::CreateShaderModule(const std::vector<u8> code) const
 {
     vk::ShaderModuleCreateInfo createInfo{
         .codeSize = code.size(),
@@ -239,8 +208,7 @@ gd::Device::CreateShaderModule(const std::vector<u8> code) const
     return std::move(*vkDevice.createShaderModule(createInfo));
 }
 
-std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory>
-gd::Device::Allocate(usize size)
+std::tuple<vk::raii::Buffer, vk::raii::DeviceMemory> gd::Device::Allocate(usize size)
 {
     // Create buffer
     vk::BufferCreateInfo bufferInfo;
@@ -258,10 +226,8 @@ gd::Device::Allocate(usize size)
     // vkDevice.mapFlushedMemoryRanges() depois de escrever na memória mapeada e
     // vkDevice.invalidateMappedMemoryRanges antes de ler da memória mapeada.
     // Mas isso tem desempenho pior e pode ser mudado depois.
-    auto memType =
-        FindMemoryType(requirements.memoryTypeBits,
-                       vk::MemoryPropertyFlagBits::eHostVisible |
-                           vk::MemoryPropertyFlagBits::eHostCoherent);
+    auto memType = FindMemoryType(requirements.memoryTypeBits,
+                                  vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     vk::MemoryAllocateInfo memInfo;
     memInfo.setAllocationSize(requirements.size);
     memInfo.setMemoryTypeIndex(memType);
@@ -280,15 +246,13 @@ gd::Device::Allocate(usize size)
 // Existem heaps diferentes como VRAM e espaço de swap na RAM pra quando a VRAM
 // acaba. São heaps diferentes. Dentro de cada heap, existem tipos diferentes de
 // memória.
-u32 gd::Device::FindMemoryType(u32 supportedTypes,
-                               vk::MemoryPropertyFlags properties)
+u32 gd::Device::FindMemoryType(u32 supportedTypes, vk::MemoryPropertyFlags properties)
 {
     auto memProps = vkPhysicalDevice.getMemoryProperties2();
     for (u32 i = 0; i < memProps.memoryProperties.memoryTypeCount; i++)
     {
         if ((supportedTypes & (1 << i)) && // Buffer suporta tipo i?
-            (memProps.memoryProperties.memoryTypes[i].propertyFlags &
-             properties) ==
+            (memProps.memoryProperties.memoryTypes[i].propertyFlags & properties) ==
                 properties) // Tipo i tem todas as flags que eu pedi?
         {
             return i;
