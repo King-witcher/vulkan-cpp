@@ -6,8 +6,9 @@
 
 namespace gd
 {
-    Mesh::Mesh(gd::TransferContext &transfer, const std::vector<gd::Vertex> &vertices)
-        : vertexCount(vertices.size()), buffer(MakeVertexBuffer(transfer, vertices))
+    Mesh::Mesh(gd::TransferContext &transfer, const std::vector<gd::Vertex> &vertices, const std::vector<u32> &indices)
+        : vertexCount(vertices.size()), indexCount(indices.size()), vertexBuffer(MakeVertexBuffer(transfer, vertices)),
+          indexBuffer(MakeIndexBuffer(transfer, indices))
     {
     }
 
@@ -15,5 +16,11 @@ namespace gd
     {
         // The vertex buffer lives in VRAM; TransferContext handles the staging.
         return transfer.UploadBuffer(vertices, vk::BufferUsageFlagBits::eVertexBuffer);
+    }
+
+    gd::Buffer Mesh::MakeIndexBuffer(gd::TransferContext &transfer, const std::vector<u32> &indices)
+    {
+        // The index buffer lives in VRAM; TransferContext handles the staging.
+        return transfer.UploadBuffer(indices, vk::BufferUsageFlagBits::eIndexBuffer);
     }
 } // namespace gd

@@ -38,7 +38,10 @@ namespace gd
 
         void BindPipeline(gd::Pipeline &);
         void BindVertexBuffer(gd::Buffer &);
+        void BindIndexBuffer(gd::Buffer &);
         void Draw(u32 vertexCount, u32 instanceCount = 1, u32 firstVertex = 0, u32 firstInstance = 0);
+        void DrawIndexed(u32 indexCount, u32 instanceCount = 1, u32 firstIndex = 0, i32 vertexOffset = 0,
+                         u32 firstInstance = 0);
 
     private:
         RenderPass(gd::FrameInFlight &frameInFlight, gd::SwapchainImage &swapchainImage)

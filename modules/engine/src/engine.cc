@@ -19,21 +19,17 @@ namespace gd
 
         void Run()
         {
-            std::vector<gd::Vertex> vertices1 = {
-                {{0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-                {{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-                {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+            std::vector<gd::Vertex> squareVertices = {
+                {{-0.5f, -0.5f, 0.0f}, {0.2f, 0.0f, 0.0f}},
+                {{0.5f, -0.5f, 0.0f}, {0.2f, 0.0f, 0.0f}},
+                {{0.5f, 0.5f, 0.0f}, {0.4f, 0.0f, 0.0f}},
+                {{-0.5f, 0.5f, 0.0f}, {0.4f, 0.0f, 0.0f}},
             };
 
-            std::vector<gd::Vertex> vertices2 = {
-                {{0.2f, -0.4f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-                {{0.2f, 0.6f, 0.1f}, {0.0f, 1.0f, 0.0f}},
-                {{-0.6f, 0.6f, 0.1f}, {0.0f, 0.0f, 1.0f}},
-            };
+            std::vector<u32> squareIndices = {0, 1, 2, 2, 3, 0};
 
             std::vector<gd::Mesh> meshes;
-            meshes.emplace_back(transfer, vertices1);
-            meshes.emplace_back(transfer, vertices2);
+            meshes.emplace_back(transfer, squareVertices, squareIndices);
 
             for (;;)
             {

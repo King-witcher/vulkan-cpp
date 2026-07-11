@@ -57,9 +57,20 @@ namespace gd
         frameInFlight.commandBuffer.bindVertexBuffers(0, {buffer.VkBuffer()}, {0});
     }
 
+    void gd::RenderPass::BindIndexBuffer(gd::Buffer &buffer)
+    {
+        frameInFlight.commandBuffer.bindIndexBuffer(buffer.VkBuffer(), 0, vk::IndexType::eUint32);
+    }
+
     void gd::RenderPass::Draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance)
     {
         frameInFlight.commandBuffer.draw(vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
+    void gd::RenderPass::DrawIndexed(u32 indexCount, u32 instanceCount, u32 firstIndex, i32 vertexOffset,
+                                      u32 firstInstance)
+    {
+        frameInFlight.commandBuffer.drawIndexed(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
     void gd::RenderPass::BeginRendering(vk::Extent2D extent)
@@ -198,7 +209,8 @@ namespace gd
         for (auto &mesh : scene)
         {
             frame.BindVertexBuffer(mesh.VertexBuffer());
-            frame.Draw(mesh.vertexCount);
+            frame.BindIndexBuffer(mesh.IndexBuffer());
+            frame.DrawIndexed(mesh.indexCount);
         }
     }
 
