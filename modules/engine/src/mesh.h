@@ -18,6 +18,7 @@ namespace gd
         gd::Buffer &VertexBuffer() { return vertexBuffer; }
         gd::Buffer &IndexBuffer() { return indexBuffer; }
 
+        // Make private
         u32 vertexCount;
         u32 indexCount;
 
