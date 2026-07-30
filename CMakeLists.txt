@@ -75,7 +75,8 @@ FetchContent_MakeAvailable(glm)
 # INTERFACE = aplica a quem linka glm::glm, não ao build (header-only) do próprio GLM.
 target_compile_definitions(glm INTERFACE
     GLM_FORCE_DEPTH_ZERO_TO_ONE
-    GLM_FORCE_RADIANS)
+    GLM_FORCE_RADIANS
+    GLM_FORCE_DEFAULT_ALIGNED_GENTYPES)
 
 # VMA
 # SYSTEM: trata os headers do VMA como system headers (add_subdirectory SYSTEM).

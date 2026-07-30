@@ -16,6 +16,7 @@ namespace gd
         // Must be bound in a renderpass
         vk::Pipeline VkPipeline() { return *vkPipeline; }
         vk::PipelineLayout Layout() { return *vkLayout; }
+        vk::DescriptorSetLayout DescriptorSetLayout() { return *descriptorSetLayout; }
 
     private:
         vk::raii::DescriptorSetLayout descriptorSetLayout;

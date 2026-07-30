@@ -54,7 +54,7 @@ namespace gd
         TransferContext transfer{device, allocator};
         Swapchain swapchain{device, vkSurface};
         Input input{};
-        Renderer renderer{device, swapchain};
+        Renderer renderer{device, allocator, swapchain};
 
         vk::raii::Instance CreateInstance() const
         {

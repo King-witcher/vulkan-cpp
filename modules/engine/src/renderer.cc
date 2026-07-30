@@ -1,4 +1,7 @@
+#include <chrono>
 #include <vector>
+
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "panic.h"
 
@@ -13,10 +16,28 @@ namespace gd
 {
 
 #pragma region gd::FrameInFlight
-    FrameInFlight::FrameInFlight(Device &device, vk::raii::CommandPool &pool)
-        : commandBuffer(MakeCommandBuffer(device, pool)), imageAvailable(device.CreateSemaphore()),
+    FrameInFlight::FrameInFlight(Device &device, Allocator &allocator, vk::raii::CommandPool &pool,
+                                 vk::raii::DescriptorPool &descriptorPool, vk::DescriptorSetLayout layout)
+        : ubo(MakeUbo(allocator)), commandBuffer(MakeCommandBuffer(device, pool)),
+          descriptorSet(MakeDescriptorSet(device, descriptorPool, layout)), imageAvailable(device.CreateSemaphore()),
           fence(device.CreateFence(true))
     {
+        // Point this frame's descriptor set at its own UBO buffer. The buffer is
+        // persistent, so this binding is written once and only its contents change
+        // per frame — no need to re-update the descriptor set every frame.
+        vk::DescriptorBufferInfo bufferInfo;
+        bufferInfo.setBuffer(ubo.VkBuffer());
+        bufferInfo.setOffset(0);
+        bufferInfo.setRange(sizeof(UniformBufferObject));
+
+        vk::WriteDescriptorSet write;
+        write.setDstSet(*descriptorSet);
+        write.setDstBinding(0);
+        write.setDstArrayElement(0);
+        write.setDescriptorType(vk::DescriptorType::eUniformBuffer);
+        write.setBufferInfo(bufferInfo);
+
+        device.VkDevice().updateDescriptorSets(write, {});
     }
 
     vk::raii::CommandBuffer FrameInFlight::MakeCommandBuffer(Device &device, vk::raii::CommandPool &pool)
@@ -28,6 +49,31 @@ namespace gd
 
         auto buffers = Unwrap(device.VkDevice().allocateCommandBuffers(info), "Failed to allocate Command Buffers");
         return std::move(buffers[0]);
+    }
+
+    gd::Buffer FrameInFlight::MakeUbo(Allocator &allocator)
+    {
+        vk::BufferCreateInfo info;
+        info.setSize(sizeof(UniformBufferObject));
+        info.setUsage(vk::BufferUsageFlagBits::eUniformBuffer);
+        info.setSharingMode(vk::SharingMode::eExclusive);
+
+        // HostVisible: the CPU rewrites the transforms every frame.
+        auto result = allocator.Allocate(info, AllocMode::HostVisible);
+        if (result.result != vk::Result::eSuccess)
+            Panic("Failed to allocate uniform buffer");
+        return std::move(result.value);
+    }
+
+    vk::raii::DescriptorSet FrameInFlight::MakeDescriptorSet(Device &device, vk::raii::DescriptorPool &pool,
+                                                             vk::DescriptorSetLayout layout)
+    {
+        vk::DescriptorSetAllocateInfo info;
+        info.setDescriptorPool(pool);
+        info.setSetLayouts(layout);
+
+        auto sets = Unwrap(device.VkDevice().allocateDescriptorSets(info), "Failed to allocate descriptor set");
+        return std::move(sets[0]);
     }
 #pragma endregion
 
@@ -52,6 +98,11 @@ namespace gd
         frameInFlight.commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.VkPipeline());
     }
 
+    void gd::RenderPass::BindDescriptorSet(vk::PipelineLayout layout, vk::DescriptorSet set)
+    {
+        frameInFlight.commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, layout, 0, {set}, {});
+    }
+
     void gd::RenderPass::BindVertexBuffer(gd::Buffer &buffer)
     {
         frameInFlight.commandBuffer.bindVertexBuffers(0, {buffer.VkBuffer()}, {0});
@@ -68,7 +119,7 @@ namespace gd
     }
 
     void gd::RenderPass::DrawIndexed(u32 indexCount, u32 instanceCount, u32 firstIndex, i32 vertexOffset,
-                                      u32 firstInstance)
+                                     u32 firstInstance)
     {
         frameInFlight.commandBuffer.drawIndexed(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
@@ -169,11 +220,13 @@ namespace gd
 #pragma endregion
 
 #pragma region gd::Renderer
-    Renderer::Renderer(gd::Device &device, gd::Swapchain &swapchain)
-        : device(&device), commandPool(MakeCommandPool(device)),
+    Renderer::Renderer(gd::Device &device, gd::Allocator &allocator, gd::Swapchain &swapchain)
+        : device(&device), allocator(&allocator), commandPool(MakeCommandPool(device)),
           graphicsQueue(device.VkDevice().getQueue(device.GraphicsIndex(), 0)), swapchain(&swapchain),
           trianglePipeline{device, swapchain.ImageFormat(), "shaders/shader.spv"},
-          frames{FrameInFlight{device, commandPool}, FrameInFlight{device, commandPool}}
+          descriptorPool(MakeDescriptorPool(device)),
+          frames{FrameInFlight{device, allocator, commandPool, descriptorPool, trianglePipeline.DescriptorSetLayout()},
+                 FrameInFlight{device, allocator, commandPool, descriptorPool, trianglePipeline.DescriptorSetLayout()}}
     {
     }
 
@@ -202,15 +255,38 @@ namespace gd
         return renderPass;
     }
 
-    void gd::Renderer::DrawScene(gd::RenderPass &frame, std::vector<gd::Mesh> &scene)
+    void gd::Renderer::DrawScene(gd::RenderPass &renderPass, std::vector<gd::Mesh> &scene)
     {
-        frame.BindPipeline(trianglePipeline);
+        auto &frameInFlight = renderPass.frameInFlight;
+
+        // Seconds since the first frame — drives the spin. BeginRenderPass already
+        // waited on this frame's fence, so overwriting its UBO here can't race the GPU.
+        static const auto startTime = std::chrono::high_resolution_clock::now();
+        auto now = std::chrono::high_resolution_clock::now();
+        f32 time = std::chrono::duration<f32>(now - startTime).count();
+
+        auto extent = swapchain->Extent();
+        f32 aspect = static_cast<f32>(extent.width) / static_cast<f32>(extent.height);
+
+        UniformBufferObject ubo{};
+        // Spin 90°/s around Z (the axis pointing out of the screen).
+        ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 1.0f));
+        ubo.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        ubo.proj = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 10.0f);
+        // GLM targets OpenGL's Y-up clip space; Vulkan's Y points down. Flipping
+        // proj[1][1] fixes it (and is why the pipeline uses CCW front faces).
+        ubo.proj[1][1] *= -1.0f;
+
+        frameInFlight.ubo.MapCopy(ubo);
+
+        renderPass.BindPipeline(trianglePipeline);
+        renderPass.BindDescriptorSet(trianglePipeline.Layout(), *frameInFlight.descriptorSet);
 
         for (auto &mesh : scene)
         {
-            frame.BindVertexBuffer(mesh.VertexBuffer());
-            frame.BindIndexBuffer(mesh.IndexBuffer());
-            frame.DrawIndexed(mesh.indexCount);
+            renderPass.BindVertexBuffer(mesh.VertexBuffer());
+            renderPass.BindIndexBuffer(mesh.IndexBuffer());
+            renderPass.DrawIndexed(mesh.indexCount);
         }
     }
 
@@ -258,6 +334,23 @@ namespace gd
         info.setQueueFamilyIndex(device.GraphicsIndex());
 
         return Unwrap(device.VkDevice().createCommandPool(info), "Failed to create command pool");
+    }
+
+    vk::raii::DescriptorPool Renderer::MakeDescriptorPool(gd::Device &device)
+    {
+        // One uniform-buffer descriptor per frame in flight.
+        vk::DescriptorPoolSize poolSize;
+        poolSize.setType(vk::DescriptorType::eUniformBuffer);
+        poolSize.setDescriptorCount(MAX_FRAMES_IN_FLIGHT);
+
+        vk::DescriptorPoolCreateInfo info;
+        // eFreeDescriptorSet: each set is owned by a vk::raii::DescriptorSet, which
+        // frees itself on destruction — that requires the pool to allow individual frees.
+        info.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
+        info.setPoolSizes(poolSize);
+        info.setMaxSets(MAX_FRAMES_IN_FLIGHT);
+
+        return Unwrap(device.VkDevice().createDescriptorPool(info), "Failed to create descriptor pool");
     }
 #pragma endregion
 

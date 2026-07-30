@@ -37,7 +37,7 @@ namespace gd
         auto &vkDevice = device.VkDevice();
         vk::DescriptorSetLayoutBinding uboBinding;
         uboBinding.setBinding(0);
-        uboBinding.setDescriptorCount(1);
+        uboBinding.setDescriptorCount(1); // we can have an array of uniform buffers
         uboBinding.setDescriptorType(vk::DescriptorType::eUniformBuffer);
         uboBinding.setStageFlags(vk::ShaderStageFlagBits::eVertex);
 
@@ -53,6 +53,8 @@ namespace gd
 
         auto &vkDevice = device.VkDevice();
         vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
+        // Attach the UBO descriptor set layout so shaders can read `set = 0, binding = 0`.
+        pipelineLayoutInfo.setSetLayouts(*descriptorSetLayout);
         return Unwrap(vkDevice.createPipelineLayout(pipelineLayoutInfo), "Failed to create pipeline layout");
     }
 
@@ -102,7 +104,9 @@ namespace gd
         rasterizer.setRasterizerDiscardEnable(vk::False);
         rasterizer.setPolygonMode(vk::PolygonMode::eFill);
         rasterizer.setCullMode(vk::CullModeFlagBits::eBack);
-        rasterizer.setFrontFace(vk::FrontFace::eClockwise);
+        // CCW: the projection flips Y (proj[1][1] *= -1) to match Vulkan's clip space,
+        // which reverses the winding the rasterizer sees. Front faces become CCW.
+        rasterizer.setFrontFace(vk::FrontFace::eCounterClockwise);
         rasterizer.setDepthBiasEnable(vk::False);
         rasterizer.setDepthBiasSlopeFactor(1.0f);
         rasterizer.setLineWidth(1.0f);

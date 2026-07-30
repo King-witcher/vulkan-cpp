@@ -1,6 +1,6 @@
 struct VertexInput
 {
-    float2 inPosition;
+    float3 inPosition;
     float3 inColor;
 }
 
@@ -9,6 +9,7 @@ struct UniformBuffer {
     float4x4 view;
     float4x4 proj;
 };
+[[vk::binding(0, 0)]]
 ConstantBuffer<UniformBuffer> ubo;
 
 struct VertexOutput
