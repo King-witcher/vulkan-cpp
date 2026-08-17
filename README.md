@@ -12,3 +12,5 @@
 - Roda `cmake --build build`
 
 Agora aperta F5 e fé
+
+**Arquivado para focar no https://github.com/King-witcher/gleed-ash.**
